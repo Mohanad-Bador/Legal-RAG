@@ -14,7 +14,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 embed_model, llm_model, tokenizer, collection = load_resources(
     device_map=device,
     embedding_model_id="intfloat/multilingual-e5-large",
-    llm_model_id="silma-ai/SILMA-9B-Instruct-v1.0",
+    llm_model_id="Qwen/Qwen2.5-3B-Instruct",
     persist_directory="chromadb-ar-docs6",
     collection_name="laww"
 )
