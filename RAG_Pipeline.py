@@ -6,9 +6,9 @@ from chromadb import Client
 from langchain import PromptTemplate
 import streamlit as st
 import torch
+import chromadb
 
-
-@st.cache_resource
+# @st.cache_resource
 def load_resources(
     device_map,
     embedding_model_id="intfloat/multilingual-e5-large",
@@ -46,8 +46,9 @@ def load_resources(
     )
 
     # Initialize ChromaDB client and collection
-    client = Client(Settings(persist_directory=persist_directory, chroma_db_impl="sqlite"))
-    collection = client.get_or_create_collection(name=collection_name)
+    # client = Client(Settings(persist_directory=persist_directory, chroma_db_impl="sqlite"))
+    client = chromadb.PersistentClient(path=persist_directory) 
+    collection = client.get_or_create_collection(name=persist_directory)
 
     return embed_model, llm_model, tokenizer, collection
 
