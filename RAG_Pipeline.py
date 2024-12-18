@@ -8,7 +8,7 @@ import streamlit as st
 import torch
 
 
-@st.cache_resource
+# @st.cache_resource
 def load_resources(
     device_map,
     embedding_model_id="intfloat/multilingual-e5-large",
