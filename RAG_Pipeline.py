@@ -2,7 +2,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from sentence_transformers import SentenceTransformer
 from chromadb.api import Collection
 from chromadb.config import Settings
-from chromadb import Client
+import chromadb
 from langchain import PromptTemplate
 import streamlit as st
 import torch
@@ -46,8 +46,8 @@ def load_resources(
     )
 
     # Initialize ChromaDB client and collection
-    client = Client(Settings(persist_directory=persist_directory, chroma_db_impl="sqlite"))
-    collection = client.get_or_create_collection(name=collection_name)
+    chroma_client = chromadb.PersistentClient(path="./chromadb-ar-docs6")
+    collection = chroma_client.get_collection(name="laww")
 
     return embed_model, llm_model, tokenizer, collection
 
