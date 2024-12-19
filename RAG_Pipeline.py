@@ -1,10 +1,7 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from sentence_transformers import SentenceTransformer
-from chromadb.api import Collection
-from chromadb.config import Settings
-import chromadb
 from langchain import PromptTemplate
-import streamlit as st
+import chromadb
 import torch
 
 
@@ -18,21 +15,20 @@ def load_resources(
     torch_dtype=torch.bfloat16,
 ):
     """
-    Loads and caches the embedding model, LLM model, tokenizer, and vector database collection.
+    Generates a response to a user query by retrieving relevant context from a vector database 
+    and utilizing a language model to generate an answer.
 
     Args:
-    - embedding_model_id (str): The ID of the embedding model to load.
-    - llm_model_id (str): The ID of the LLM model to load.
-    - persist_directory (str): Path to the ChromaDB persistent directory.
-    - collection_name (str): Name of the vector database collection.
-    - device_map (str): Device mapping for the LLM model (e.g., 'auto').
-    - torch_dtype (torch.dtype): Data type for the LLM model (e.g., torch.bfloat16).
+    - question (str): The user query for which a response is required.
+    - llm_model: The loaded large language model used for generating responses.
+    - tokenizer: The tokenizer corresponding to the LLM model.
+    - embed_model: The embedding model used to encode the question into vector representation.
+    - collection: The vector database collection used to retrieve relevant documents.
+    - n_results (int, optional): Number of top matching documents to retrieve from the database. Default is 3.
 
     Returns:
-    - embed_model: Loaded embedding model.
-    - llm_model: Loaded LLM model.
-    - tokenizer: Tokenizer for the LLM model.
-    - collection: ChromaDB collection object.
+    - str: The generated response from the language model. If no relevant context is found, 
+           returns "NO ANSWER IS AVAILABLE". In case of an error, returns an error message.
     """
     # Load embedding model
     embed_model = SentenceTransformer(embedding_model_id)
