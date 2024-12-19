@@ -46,8 +46,8 @@ def load_resources(
     )
 
     # Initialize ChromaDB client and collection
-    chroma_client = chromadb.PersistentClient(path="./chromadb-ar-docs6")
-    collection = chroma_client.get_collection(name="laww")
+    chroma_client = chromadb.PersistentClient(path=persist_directory)
+    collection = chroma_client.get_collection(name=collection_name)
 
     return embed_model, llm_model, tokenizer, collection
 
