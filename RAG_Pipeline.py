@@ -3,9 +3,10 @@ from sentence_transformers import SentenceTransformer
 from langchain import PromptTemplate
 import chromadb
 import torch
+import streamlit as st
 
 
-# @st.cache_resource
+@st.cache_resource
 def load_resources(
     device_map,
     embedding_model_id="intfloat/multilingual-e5-large",
@@ -58,7 +59,8 @@ def generate_response(question, llm_model, tokenizer, embed_model, collection, n
     # Define the prompt template
     qna_template = "\n".join([
         "Answer the next question using the provided context.",
-        "If the answer is not contained in the context, say 'NO ANSWER IS AVAILABLE'",
+        "If the answer is not contained in the context, say 'NO ANSWER IS AVAILABLE'.",
+        "Provide a detailed and thorough explanation, explaining the context and including any relevant legal or procedural details if necessary.",
         "### Context:",
         "{context}",
         "",
