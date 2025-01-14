@@ -32,6 +32,29 @@ def add_metadata(file_path):
                 file.write(line)
             i += 1
 
+
+def add_article_metadata(csv_file_path):
+    articles = read_articles_from_csv(csv_file_path)
+    updated_articles = []
+
+    for article in articles:
+        article_number = article['article_number']
+        article_details = article['article_details']
+        updated_article_details = []
+
+        lines = article_details.split('\n')
+        for i, line in enumerate(lines):
+            if i == 0:
+                updated_article_details.append(f"المادة {article_number} من قانون العمل المصري: {line}")
+            else:
+                updated_article_details.append(line)
+
+        article['article_details'] = '\n'.join(updated_article_details)
+        updated_articles.append(article)
+
+    save_articles_to_csv(updated_articles, csv_file_path)
+
+
 def read_articles(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
         lines = file.readlines()
@@ -177,6 +200,8 @@ def find_definitions_in_articles(articles, definitions):
         linked_terms = {}
         
         for term, definition in definitions.items():
+            if article['article_number'] == "1" or article['article_number'] == "202":
+                continue
             # Check if the definition is specific to a book or chapter
             if isinstance(definition, dict):
                 applied_definition = None  # Initialize variable for the matched definition
@@ -215,7 +240,7 @@ def find_definitions_in_articles(articles, definitions):
 
 
 
-def extract_references(article_text):
+def extract_references(article_text, current_article_number):
     """
     Extract references to other articles from the article text.
     
@@ -246,6 +271,9 @@ def extract_references(article_text):
     # Match ranges with hyphen (e.g., بالمواد من (196 - 200))
     hyphen_range_references = re.findall(r"بالمواد\s+من\s*\(?\s*(\d+)\s*-\s*(\d+)\s*\)?", article_text)
     
+    # Match reference to "المادة السابقة"
+    previous_article_reference = re.findall(r"المادة\s+السابقة", article_text)
+
     # Flatten and clean references
     all_references = []
     
@@ -284,6 +312,11 @@ def extract_references(article_text):
         if start.isdigit() and end.isdigit():
             all_references.extend(range(int(start), int(end) + 1))
     
+    # Process reference to "المادة السابقة"
+    if previous_article_reference:
+        previous_article_number = current_article_number - 1
+        all_references.append(previous_article_number)
+
     # Remove duplicates and sort
     return sorted(set(all_references))
 
@@ -299,22 +332,22 @@ def link_article_references(articles):
     """
     for article in articles:
         article_text = article['article_details']
-        references = extract_references(article_text)
+        references = extract_references(article_text, int(article['article_number']))
         article['linked_articles'] = references
     return articles
 
 
 if __name__ == "__main__":
 
-    # add_metadata("labour_law.md")
-    articles = read_articles_with_metadata("labour_law.md")
+    add_article_metadata("labour_law_with_articles.csv")
+    # articles = read_articles_with_metadata("labour_law.md")
 
-    # linked_articles = read_articles_from_csv("labour_law_linked.csv")
-    linked_articles = find_definitions_in_articles(articles, definitions)
+    # # linked_articles = read_articles_from_csv("labour_law_linked.csv")
+    # linked_articles = find_definitions_in_articles(articles, definitions)
 
-    referenced_articles = link_article_references(linked_articles)
+    # referenced_articles = link_article_references(linked_articles)
 
-    save_articles_to_csv(referenced_articles, "labour_law.csv")
+    # save_articles_to_csv(referenced_articles, "labour_law.csv")
     # for article in articles_from_csv:
     #     print(article)
     #     print("\n" + "="*80 + "\n")
