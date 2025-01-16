@@ -1,9 +1,15 @@
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from sentence_transformers import SentenceTransformer
 from langchain import PromptTemplate
+from langchain_chroma import Chroma
+from langchain.llms import HuggingFaceHub
+from langchain.chains import RetrievalQA
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain import HuggingFacePipeline
+import streamlit as st
 import chromadb
 import torch
-import streamlit as st
+
 
 
 @st.cache_resource
@@ -114,3 +120,57 @@ def generate_response(question, llm_model, tokenizer, embed_model, collection, n
 
     except Exception as e:
         return f"An error occurred while generating the response: {str(e)}"
+
+
+
+def initialize_RetrievalQA_pipeline(persist_directory, collection_name, llm_model_id, hf_api_token, embedding_model_id, top_k=5, chain_type='stuff', HF_EndPoint=False):
+
+        # Initialize ChromaDB client and collection
+    chroma_client = chromadb.PersistentClient(path=persist_directory)
+    collection = chroma_client.get_collection(name=collection_name)
+    vector_store = Chroma(client=chroma_client, collection_name=collection_name, embedding_function=embedding_model_id)
+
+    # Initialize retriever
+    retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": top_k})
+
+    if HF_EndPoint:
+        # Initialize Hugging Face model
+        hf_llm = HuggingFaceHub(
+            repo_id=llm_model_id,
+            model_kwargs={
+            "max_new_tokens": 512,
+            "return_full_text":True,
+            "device":'auto',
+            "top_p": 0.15,
+            # "top_k": 0,
+            # "truncation": True,
+            "do_sample": True,  
+            "repetition_penalty":1.1
+            },
+            huggingfacehub_api_token=hf_api_token
+        )
+    else: 
+        tokenizer = AutoTokenizer.from_pretrained(llm_model_id)
+
+        # Load the model with offloading
+        model = AutoModelForCausalLM.from_pretrained(
+            llm_model_id,
+            device_map="auto",  # Automatically distribute layers across devices
+            torch_dtype=torch.bfloat16,  # Use bfloat16 for reduced memory
+            offload_folder="./offload",  # Optional: offload layers to disk
+        )
+
+        # Set up the pipeline (do not include offload_folder here)
+        pipe = pipeline(
+            "text-generation",
+            model=model,
+            tokenizer=tokenizer,
+            model_kwargs={"torch_dtype": torch.bfloat16},
+        )
+        hf_llm = HuggingFacePipeline(pipeline=pipe)
+
+
+    # Create RetrievalQA pipeline
+    qa_pipeline = RetrievalQA.from_chain_type(llm=hf_llm, chain_type=chain_type, retriever=retriever, return_source_documents=True)
+
+    return qa_pipeline 
