@@ -1,0 +1,1 @@
+from .retrieval_pipeline import initialize_retrieval_pipeline, add_documents_to_collection
