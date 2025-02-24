@@ -10,19 +10,16 @@ import streamlit as st
 import chromadb
 import torch
 
-from data.data_preprocessing import read_articles, clean_text
-from data.data_chunking import chunk_text, chunk_and_save_to_json, load_chunks_from_json
-from data.data_embedding import embed_documents
-from retrieval.retrieval_pipeline import initialize_retrieval_pipeline, add_documents_to_collection
-from generation.generation_pipeline import generate_answer
+from data import read_articles, clean_text, chunk_text, chunk_and_save_to_json, load_chunks_from_json, embed_documents
+from src import initialize_retrieval_pipeline, add_documents_to_collection, generate_answer
 
 @st.cache_resource
 def load_resources(
     device_map,
     embedding_model_id="intfloat/multilingual-e5-large",
     llm_model_id="silma-ai/SILMA-9B-Instruct-v1.0",
-    persist_directory="data/chromadb-ar-docs6",
-    collection_name="laww",
+    persist_directory="data/chromadb-law",
+    collection_name="labour-law",
     torch_dtype=torch.bfloat16,
 ):
     """
@@ -50,8 +47,8 @@ if __name__ == "__main__":
     device_map = "auto"
     embedding_model_id = "intfloat/multilingual-e5-large"
     llm_model_id = "silma-ai/SILMA-9B-Instruct-v1.0"
-    persist_directory = "data/chromadb-ar-docs6"
-    collection_name = "laww"
+    persist_directory = "data/chromadb-law"
+    collection_name = "labour-law"
     torch_dtype = torch.bfloat16
 
     # Load resources
@@ -65,13 +62,13 @@ if __name__ == "__main__":
     )
 
     # Read and preprocess articles
-    articles = read_articles("path/to/your/csvfile.csv")
+    articles = read_articles("data/labour_data/labour_law_with_articles.csv")
 
     # Chunk the articles and save to JSON
-    chunk_and_save_to_json(articles, clean_text, output_file="chunks_with_metadata.json")
+    chunk_and_save_to_json(articles, clean_text, output_file="data/labour_data/chunks_with_metadata.json")
 
     # Load chunks from JSON
-    chunked_documents, chunked_metadata, chunked_ids = load_chunks_from_json("chunks_with_metadata.json")
+    chunked_documents, chunked_metadata, chunked_ids = load_chunks_from_json("data/labour_data/chunks_with_metadata.json")
 
     # Embed the chunked articles
     embeddings = embed_documents(chunked_documents)
@@ -87,9 +84,9 @@ if __name__ == "__main__":
     # Add documents to the collection
     add_documents_to_collection(retriever.vector_store.collection, chunked_documents, embeddings, chunked_metadata)
 
-    # # Example question
-    # question = "What are the labor laws regarding overtime work?"
+    # Example question
+    question = "What are the labor laws regarding overtime work?"
 
-    # # Generate response
-    # response = generate_answer(question, embed_model, retriever.vector_store.collection, llm_model, tokenizer)
-    # print(response)
+    # Generate response
+    response = generate_answer(question, embed_model, retriever.vector_store.collection, llm_model, tokenizer)
+    print(response)
