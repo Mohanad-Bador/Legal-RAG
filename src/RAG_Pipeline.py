@@ -9,6 +9,11 @@ from langchain import HuggingFacePipeline
 import streamlit as st
 import chromadb
 import torch
+import sys
+import os
+
+# Add the root directory of your project to the Python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from data import read_articles, clean_text, chunk_text, chunk_and_save_to_json, load_chunks_from_json, embed_documents
 from src import initialize_retrieval_pipeline, add_documents_to_collection, generate_answer
@@ -38,7 +43,10 @@ def load_resources(
 
     # Initialize ChromaDB client and collection
     chroma_client = chromadb.PersistentClient(path=persist_directory)
-    collection = chroma_client.get_collection(name=collection_name)
+    try:
+        collection = chroma_client.get_collection(name=collection_name)
+    except chromadb.errors.InvalidCollectionException:
+        collection = chroma_client.create_collection(name=collection_name)
 
     return embed_model, llm_model, tokenizer, collection
 

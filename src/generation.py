@@ -3,7 +3,7 @@ from langchain import PromptTemplate
 import torch
 import re
 from data import clean_text
-from src import qna_prompt
+from src.prompt_template import qna_prompt
 
 def generate_answer(question, embed_model, collection, llm_model, tokenizer):
     # Preprocessing the question
