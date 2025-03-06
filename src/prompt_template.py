@@ -32,6 +32,5 @@ qna_template = """
 
 qna_prompt = PromptTemplate(
     template=qna_template,
-    input_variables=['context', 'question'],
-    verbose=True
-)
+    input_variables=['context', 'question']
+    )
