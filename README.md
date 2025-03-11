@@ -1,6 +1,6 @@
 # Legal-RAG
 
-This project is a Retrieval-Augmented Generation (RAG) pipeline for legal documents. It uses various NLP models and tools to process and retrieve information from legal texts.
+This project is a Retrieval-Augmented Generation (RAG) pipeline for legal inquiries. It uses various NLP models and tools to process and retrieve information from legal documents.
 
 ## Requirements
 
@@ -41,8 +41,10 @@ Follow these steps to run the project on Google Colab:
    Open a new Colab notebook and run the following command to clone the repository:
 
    ```python
-   !git clone https://github.com/your-username/Legal-RAG.git
+   !git clone https://<YOUR_GITHUB_TOKEN>@github.com/Mohanad-Bador/Legal-RAG.git
    ```
+
+   Replace `<YOUR_GITHUB_TOKEN>` with your actual GitHub personal access token.
 
 2. **Navigate to the Project Directory**
 
@@ -52,7 +54,16 @@ Follow these steps to run the project on Google Colab:
    %cd Legal-RAG
    ```
 
-3. **Install Dependencies**
+3. **Add the Project Directory to the Python Path**
+
+   Add the project directory to the Python path:
+
+   ```python
+   import sys
+   sys.path.append('/content/Legal-RAG')
+   ```
+
+4. **Install Dependencies**
 
    Install the required dependencies:
 
@@ -60,17 +71,43 @@ Follow these steps to run the project on Google Colab:
    !pip install -r requirements.txt
    ```
 
-4. **Run the RAG Pipeline**
+5. **Run FastAPI and Streamlit**
 
-   Create a new cell and run the following command to execute the RAG pipeline:
+   Create a new cell and run the following commands to execute the script that runs both FastAPI and Streamlit:
 
    ```python
-   !python src/RAG_Pipeline.py
+   import uvicorn
+   from pyngrok import ngrok
+   from threading import Thread
+
+   # Authenticate ngrok with your authtoken
+   ngrok.set_auth_token("YOUR_NGROK_AUTH_TOKEN")
+
+   # Kill all existing ngrok tunnels
+   ngrok.kill()
+
+   # Run FastAPI and Streamlit
+   !python src/app.py
    ```
 
-5. **Ask More Questions**
+6. **Access the Applications**
 
-   You can ask more questions without reloading the resources by modifying the `RAG_Pipeline.py` script or creating a new script that imports the necessary functions and reuses the loaded resources.
+   After running the script, you will see the public URL for accessing the applications. Use the provided URL to access the Streamlit interface and interact with the FastAPI backend.
+
+## Using the Application
+
+### Streamlit Interface
+
+- **Ask a Question**: Enter your legal question in the input field and get a response.
+- **Register a User**: Register a new user by providing a username and email.
+- **Get User Information**: Retrieve information about a registered user by entering the username.
+
+### FastAPI Endpoints
+
+- **Generate Response**: `POST /generate` - Generate a response for a given query.
+- **Create User**: `POST /users` - Create a new user with a username and email.
+- **Get User Info**: `GET /users/{username}` - Retrieve information about a user.
+- **Get Chat History**: `GET /history/{session_id}` - Retrieve chat history for a given session.
 
 ## Notes
 

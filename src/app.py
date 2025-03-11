@@ -1,39 +1,24 @@
-import streamlit as st
-import torch
-import sys
-import os
+import subprocess
+import threading
+from pyngrok import ngrok
 
-# Add the root directory of your project to the Python path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from src import load_resources, generate_answer
+def run_fastapi():
+    subprocess.run(["uvicorn", "src.fastapi:app", "--host", "0.0.0.0", "--port", "8000"])
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+def run_streamlit():
+    subprocess.run(["streamlit", "run", "src/streamlit.py"])
 
-# Load all models and resources
-embed_model, llm_model, tokenizer, collection,retriever, vector_store = load_resources(
-    device_map=device,
-    embedding_model_id="intfloat/multilingual-e5-large",
-    llm_model_id="Qwen/Qwen2.5-3B-Instruct",
-    persist_directory="data/chromadb-law",
-    collection_name="labour-law"
-)
+# Start ngrok tunnel for FastAPI
+fastapi_tunnel = ngrok.connect(8000)
+print("FastAPI URL:", fastapi_tunnel.public_url)
 
-# Streamlit app UI
-st.title("Legal Document Retrieval with RAG")
+# Start ngrok tunnel for Streamlit
+streamlit_tunnel = ngrok.connect(8501)
+print("Streamlit URL:", streamlit_tunnel.public_url)
 
-# Display an input field for the user to enter a question
-st.write("### Enter your legal question below:")
-user_question = st.text_input("Ask a question:")
+# Run FastAPI in a separate thread
+fastapi_thread = threading.Thread(target=run_fastapi)
+fastapi_thread.start()
 
-# Display the response when the user submits a question
-if user_question:
-    st.write("### Response:")
-    response = generate_answer(
-        question=user_question,  # Pass the user's input directly
-        embed_model=embed_model,
-        collection=collection,
-        llm_model=llm_model,
-        tokenizer=tokenizer,
-        n_results=3
-    )
-    st.write(response["answer"])
+# Run Streamlit in the main thread
+run_streamlit()
