@@ -11,7 +11,7 @@ from src.database.models import UserRequest
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # OAuth2 scheme for password bearer
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 # Secret key and algorithm for encoding and decoding JWT tokens
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
@@ -49,7 +49,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 # API endpoint for creating a new user
-@router.post("/signup", tags=["Users"])
+@router.post("/signup")
 def sign_up(request: UserRequest):
     hashed_password = pwd_context.hash(request.password)
     try:
@@ -59,7 +59,7 @@ def sign_up(request: UserRequest):
     return {"message": "User created successfully"}
 
 # API endpoint for login
-@router.post("/login", tags=["Users"])
+@router.post("/login")
 def login(request: OAuth2PasswordRequestForm = Depends()):
     user = get_user(request.username)
     if user is None:
@@ -70,7 +70,7 @@ def login(request: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "token_type": "bearer"}
 
 # API endpoint for getting user information
-@router.get("/users/{username}", tags=["Users"])
+@router.get("/users/{username}")
 def get_user_info(username: str, current_user: dict = Depends(get_current_user)):
     user = get_user(username)
     if user is None:
