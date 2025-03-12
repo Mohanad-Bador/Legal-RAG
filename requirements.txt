@@ -28,7 +28,7 @@ python-multipart==0.0.20
 fastapi==0.115.11
 uvicorn==0.34.0
 protobuf==4.25.6
-nvidia-cuda-runtime-cu12==12.4.127
-nvidia-cudnn-cu12==9.1.0.70
-nvidia-cublas-cu12==12.4.5.8
-nvidia-cusolver-cu12==11.6.1.9
+sqlite-web==0.6.4
+passlib==1.7.4
+python-jose==3.4.0
+python-multipart==0.0.20

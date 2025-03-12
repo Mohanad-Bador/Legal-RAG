@@ -2,7 +2,8 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from sentence_transformers import SentenceTransformer
 import chromadb
 import torch
-from src import initialize_retrieval_pipeline, generate_answer
+from src.rag.retrieval import initialize_retrieval_pipeline
+from src.rag.generation import generate_answer
 
 class RAGService:
     def __init__(self):
@@ -44,3 +45,14 @@ class RAGService:
 
 # Initialize once
 rag_service = RAGService()
+
+class DummyRAGService:
+    def __init__(self):
+        print("DummyRAGService initialized")
+
+    def generate_response(self, question: str):
+        print(f"Received question: {question}")
+        return "This is a dummy response."
+
+# Initialize once
+dummy_rag_service = DummyRAGService()
