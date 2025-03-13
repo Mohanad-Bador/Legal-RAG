@@ -53,10 +53,10 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 def sign_up(request: UserRequest):
     hashed_password = pwd_context.hash(request.password)
     try:
-        insert_user(request.username, request.email, hashed_password)
+        user_id = insert_user(request.username, request.email, hashed_password)
     except IntegrityError:
         raise HTTPException(status_code=400, detail="Username or email already exists")
-    return {"message": "User created successfully"}
+    return {"message": "User created successfully", "user_id": user_id}
 
 # API endpoint for login
 @router.post("/login")
@@ -67,7 +67,7 @@ def login(request: OAuth2PasswordRequestForm = Depends()):
     if not pwd_context.verify(request.password, user["password"]):
         raise HTTPException(status_code=401, detail="Invalid password")
     access_token = create_access_token(data={"sub": user["username"]})
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "user_id": user["id"]}
 
 # API endpoint for getting user information
 @router.get("/users/{username}")
@@ -78,6 +78,6 @@ def get_user_info(username: str, current_user: dict = Depends(get_current_user))
     return {"username": user["username"], "email": user["email"], "created_at": user["created_at"]}
 
 # API endpoint for getting the current active user
-@router.get("/me", tags=["Users"])
+@router.get("/me")
 def get_me(current_user: dict = Depends(get_current_user)):
     return current_user

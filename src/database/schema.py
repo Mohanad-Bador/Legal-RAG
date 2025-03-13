@@ -42,12 +42,18 @@ def create_users_table():
                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
     conn.close()
 
-# Insert a new row into the users table
-def insert_user(username, email, password):
+# Insert a new user into the users table
+def insert_user(username, email, hashed_password):
     conn = get_db_connection()
-    conn.execute('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', (username, email, password))
+    cursor = conn.cursor()
+    cursor.execute(
+        'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
+        (username, email, hashed_password)
+    )
     conn.commit()
+    user_id = cursor.lastrowid
     conn.close()
+    return user_id
 
 # Get a user from the users table
 def get_user(username):

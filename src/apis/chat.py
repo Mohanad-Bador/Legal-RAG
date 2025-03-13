@@ -18,7 +18,7 @@ def generate_response(request: QueryRequest, current_user: dict = Depends(get_cu
     return {"response": response, "session_id": session_id}
 
 # Dummy API endpoint for generating a response
-@router.post("/generate")
+@router.post("/generate_dummy")
 def generate_dummy_response(request: QueryRequest, current_user: dict = Depends(get_current_user)):
     session_id = request.session_id or str(uuid.uuid4())
     response = dummy_rag_service.generate_response(request.query)

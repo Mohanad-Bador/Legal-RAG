@@ -3,7 +3,7 @@ import threading
 from pyngrok import ngrok
 
 def run_fastapi():
-    subprocess.run(["uvicorn", "src.apis.fastapi:app", "--host", "0.0.0.0", "--port", "8000"])
+    subprocess.run(["uvicorn", "src.apis.main:app", "--host", "0.0.0.0", "--port", "8000"])
 
 def run_streamlit():
     subprocess.run(["streamlit", "run", "src/ui/streamlit.py"])
