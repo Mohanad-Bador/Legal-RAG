@@ -36,7 +36,7 @@ def evaluate_dataset(data_samples, model_name, metrics, output_file='score.csv')
     logging.info("Evaluation completed. Score: %s", score)
 
     df = score.to_pandas()
-    df.to_csv(output_file, index=False)
+    df.to_csv(output_file, index=False, encoding='utf-8')
     logging.info("Results saved to %s", output_file)
 
     return df
