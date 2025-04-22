@@ -56,7 +56,17 @@ def sign_up(request: UserRequest):
         user_id = insert_user(request.username, request.email, hashed_password)
     except IntegrityError:
         raise HTTPException(status_code=400, detail="Username or email already exists")
-    return {"message": "User created successfully", "user_id": user_id}
+        
+    # Generate an access token for the new user
+    access_token = create_access_token(data={"sub": request.username})
+    
+    # Return both the success message and the access token
+    return {
+        "message": "User created successfully", 
+        "user_id": user_id,
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
 
 # API endpoint for login
 @router.post("/login")
