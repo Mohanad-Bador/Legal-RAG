@@ -11,15 +11,21 @@ from langchain_community.cross_encoders import HuggingFaceCrossEncoder
 import json
 
 class HybridRetriever:
-    def __init__(self, documents, embedding_model_name="intfloat/multilingual-e5-large", bm25_weight=0.5, pc_weight=0.5):
-        self.documents = [Document(page_content=item['page_content'], metadata=item['metadata']) for item in documents]
-        self.vectorstore = self.create_vectorstore(documents, embedding_model_name)
+    def __init__(self, documents = None,vectorstore = None ,embedding_model_name="intfloat/multilingual-e5-large", bm25_weight=0.5, pc_weight=0.5):
+        if vectorstore:
+            self.vectorstore = vectorstore
+        else:
+            if not documents:
+                raise ValueError("Either documents or vectorstore must be provided.")
+            self.documents = [Document(page_content=item['page_content'], metadata=item['metadata']) for item in documents]
+            self.vectorstore = self.create_vectorstore(documents, embedding_model_name)
+
         self.sparse = self.create_sparse_retriever(documents)
         self.dense = self.create_dense_retriever(self.vectorstore)
         self.ensemble_retriever = self.create_ensemble_retriever(self.dense, self.sparse,bm25_weight, pc_weight)
     
 
-    def create_vectorstore(self,documents, embedding_model_name="intfloat/multilingual-e5-large"):
+    def create_vectorstore(self,embedding_model_name="intfloat/multilingual-e5-large"):
         """
         Create a vector store using Chroma and HuggingFace embeddings.
         
@@ -30,14 +36,25 @@ class HybridRetriever:
         Returns:
             A Chroma vector store instance.
         """
+        persist_directory="data/chromadb-law"  # Path to store the vector database
         embeddings = HuggingFaceEmbeddings(model_name=embedding_model_name)
         vectorstore = Chroma(
             embedding_function=embeddings,
-            persist_directory="data/chromadb-law",
+            persist_directory=persist_directory,
             collection_name="split_parents",
         )
         return vectorstore
-    
+    def load_vectorstore(persist_directory="data/chromadb-law"):
+        """
+        Load a persisted vector store from disk.
+        """
+        embeddings = HuggingFaceEmbeddings(model_name="intfloat/multilingual-e5-large")
+        vectorstore = Chroma(
+            embedding_function=embeddings,
+            persist_directory=persist_directory,
+            collection_name="split_parents",
+        )
+        return vectorstore
 
     def create_sparse_retriever(self,documents, k=5):
         """
@@ -75,7 +92,8 @@ class HybridRetriever:
             child_splitter=child_splitter,
             docstore=store
         )
-        retriever
+        retriever.add_documents(self.documents)
+        vectorstore.persist()
         return retriever
 
     def create_ensemble_retriever(self,dense_retriever, sparse_retriever, bm25_weight, pc_weight):
