@@ -158,4 +158,4 @@ class LegalGenerator:
 
 ## Example usage:
 # generator = LegalGenerator() 
-# response = generator.(query,context) 
+# response = generator.generate_response(query,context) 
