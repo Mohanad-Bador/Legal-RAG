@@ -9,27 +9,47 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
-# Create the application_logs table
-def create_application_logs():
+# Create the messages table
+def create_messages_table():
     conn = get_db_connection()
-    conn.execute('''CREATE TABLE IF NOT EXISTS application_logs
+    conn.execute('''CREATE TABLE IF NOT EXISTS messages
                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                     session_id TEXT,
-                     user_id INTEGER,
+                     chat_id INTEGER,
                      user_query TEXT,
                      rag_response TEXT,
                      model TEXT,
                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                     FOREIGN KEY(chat_id) REFERENCES chats(id))''')
+    conn.close()
+
+# Create the chats table
+def create_chats_table():
+    conn = get_db_connection()
+    conn.execute('''CREATE TABLE IF NOT EXISTS chats
+                    (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                     user_id INTEGER,
+                     title TEXT,
+                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                      FOREIGN KEY(user_id) REFERENCES users(id))''')
     conn.close()
 
-# Insert a new row into the application_logs table
-def insert_application_logs(session_id, user_id, user_query, rag_response, model):
+# Insert a new message into the messages table
+def insert_message(chat_id, user_query, rag_response, model):
     conn = get_db_connection()
-    conn.execute('INSERT INTO application_logs (session_id, user_id, user_query, rag_response, model) VALUES (?, ?, ?, ?, ?)',
-                 (session_id, user_id, user_query, rag_response, model))
+    conn.execute('INSERT INTO messages (chat_id, user_query, rag_response, model) VALUES (?, ?, ?, ?)',
+                 (chat_id, user_query, rag_response, model))
     conn.commit()
     conn.close()
+
+# Create a new chat for a user
+def create_chat(user_id, title="New Chat"):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('INSERT INTO chats (user_id, title) VALUES (?, ?)', (user_id, title))
+    conn.commit()
+    chat_id = cursor.lastrowid
+    conn.close()
+    return chat_id
 
 # Create the users table
 def create_users_table():
@@ -64,11 +84,20 @@ def get_user(username):
     conn.close()
     return user
 
-# Get chat history for a given session ID
-def get_chat_history(session_id, user_id):
+# Get all chats for a given user
+def get_user_chats(user_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT user_query, rag_response FROM application_logs WHERE session_id = ? AND user_id = ? ORDER BY created_at', (session_id, user_id))
+    cursor.execute('SELECT id, title, created_at FROM chats WHERE user_id = ? ORDER BY created_at DESC', (user_id,))
+    chats = cursor.fetchall()
+    conn.close()
+    return chats
+
+# Get chat history for a given chat ID
+def get_chat_history(chat_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT user_query, rag_response FROM messages WHERE chat_id = ? ORDER BY created_at', (chat_id,))
     messages = []
     for row in cursor.fetchall():
         messages.extend([
@@ -78,15 +107,37 @@ def get_chat_history(session_id, user_id):
     conn.close()
     return messages
 
-# Get all chat sessions for a given user
-def get_all_chats(user_id):
+# Get a chat by its ID
+def get_chat_by_id(chat_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT DISTINCT session_id FROM application_logs WHERE user_id = ? ORDER BY created_at', (user_id,))
-    sessions = cursor.fetchall()
+    cursor.execute('SELECT * FROM chats WHERE id = ?', (chat_id,))
+    chat = cursor.fetchone()
     conn.close()
-    return [session['session_id'] for session in sessions]
+    return chat
+
+# Update chat title
+def update_chat_title(chat_id, new_title):
+    conn = get_db_connection()
+    conn.execute('UPDATE chats SET title = ? WHERE id = ?', (new_title, chat_id))
+    conn.commit()
+    conn.close()
+
+# Delete a chat and its messages
+def delete_chat(chat_id):
+    conn = get_db_connection()
+    # First delete all messages associated with the chat
+    conn.execute('DELETE FROM messages WHERE chat_id = ?', (chat_id,))
+    # Then delete the chat itself
+    conn.execute('DELETE FROM chats WHERE id = ?', (chat_id,))
+    conn.commit()
+    conn.close()
 
 # Initialize the database tables
-create_application_logs()
-create_users_table()
+def initialize_database():
+    create_users_table()
+    create_chats_table()
+    create_messages_table()
+
+# Initialize the database on import
+initialize_database()
