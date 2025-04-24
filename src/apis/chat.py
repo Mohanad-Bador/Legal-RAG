@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from src.rag.RAG_Pipeline import dummy_rag_service , rag_service
+from src.rag.RAG_Pipeline import dummy_rag_service, rag_service
 from src.database.schema import insert_message, get_chat_history, get_user_chats, create_chat, update_chat_title, delete_chat, get_chat_by_id
 from src.database.models import QueryRequest, ChatCreateRequest, ChatUpdateRequest, ChatResponse, ChatListResponse, ChatHistoryResponse
 from src.apis.authentication import get_current_user
