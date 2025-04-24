@@ -8,35 +8,42 @@ from langchain.retrievers import ParentDocumentRetriever
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import CrossEncoderReranker
 from langchain_community.cross_encoders import HuggingFaceCrossEncoder
+from langchain.storage import LocalFileStore
+from langchain.storage._lc_store import create_kv_docstore
+import chromadb
 import json
 
 class HybridRetriever:
-    def __init__(self, documents = None,vectorstore = None ,embedding_model_name="intfloat/multilingual-e5-large", bm25_weight=0.5, pc_weight=0.5):
-        if vectorstore:
-            self.vectorstore = vectorstore
+    def __init__(self, documents,vectorstore_path = None,docstore_path = None,embedding_model_name="intfloat/multilingual-e5-large", bm25_weight=0.5, pc_weight=0.5):
+        documents = [Document(page_content=item['page_content'], metadata=item['metadata']) for item in documents]
+        self.documents = documents
+
+        if (vectorstore_path and not docstore_path) or (docstore_path and not vectorstore_path):
+          raise ValueError("You must provide both 'vectorstore_path' and 'docstore_path', or neither.")
+
+        if vectorstore_path:
+            self.vectorstore = self.load_vectorstore(vectorstore_path,embedding_model_name)
         else:
-            if not documents:
-                raise ValueError("Either documents or vectorstore must be provided.")
-            self.documents = [Document(page_content=item['page_content'], metadata=item['metadata']) for item in documents]
-            self.vectorstore = self.create_vectorstore(documents, embedding_model_name)
+            self.vectorstore = self.create_vectorstore(embedding_model_name)
+
 
         self.sparse = self.create_sparse_retriever(documents)
-        self.dense = self.create_dense_retriever(self.vectorstore)
-        self.ensemble_retriever = self.create_ensemble_retriever(self.dense, self.sparse,bm25_weight, pc_weight)
-    
 
-    def create_vectorstore(self,embedding_model_name="intfloat/multilingual-e5-large"):
+        self.dense = self.create_dense_retriever(self.vectorstore,docstore_path)
+        self.ensemble_retriever = self.create_ensemble_retriever(self.dense, self.sparse, bm25_weight, pc_weight)
+
+    def create_vectorstore(self,embedding_model_name):
         """
         Create a vector store using Chroma and HuggingFace embeddings.
-        
+
         Args:
             documents: List of documents to be embedded.
             embedding_model_name: Name of the HuggingFace model to use for embeddings.
-            
+
         Returns:
             A Chroma vector store instance.
         """
-        persist_directory="data/chromadb-law"  # Path to store the vector database
+        persist_directory = "data/chromadb-law"  # Path to store the vector database
         embeddings = HuggingFaceEmbeddings(model_name=embedding_model_name)
         vectorstore = Chroma(
             embedding_function=embeddings,
@@ -44,26 +51,30 @@ class HybridRetriever:
             collection_name="split_parents",
         )
         return vectorstore
-    def load_vectorstore(persist_directory="data/chromadb-law"):
+
+    def load_vectorstore(self,persist_directory,embedding_model_name):
         """
         Load a persisted vector store from disk.
         """
-        embeddings = HuggingFaceEmbeddings(model_name="intfloat/multilingual-e5-large")
+        embeddings = HuggingFaceEmbeddings(model_name=embedding_model_name)
+        persist_cilent = chromadb.PersistentClient(path=persist_directory)
+        collection = persist_cilent.get_collection(name="split_parents")
         vectorstore = Chroma(
-            embedding_function=embeddings,
-            persist_directory=persist_directory,
+            client=persist_cilent,
             collection_name="split_parents",
+            embedding_function=embeddings,
+            persist_directory=persist_directory
         )
         return vectorstore
 
-    def create_sparse_retriever(self,documents, k=5):
+    def create_sparse_retriever(self, documents, k=5):
         """
         Create a sparse retriever using BM25 algorithm.
-        
+
         Args:
-            vectorstore: The vector store to use for retrieval.
+            documents: The documents to use for retrieval.
             k: The number of documents to retrieve.
-            
+
         Returns:
             A BM25Retriever instance.
         """
@@ -72,38 +83,54 @@ class HybridRetriever:
         )
         return bm25_retriever
 
-    def create_dense_retriever(self,vectorstore):
+    def create_dense_retriever(self, vectorstore,docstore_path):
         """
         Create a dense retriever using the provided vector store.
-        
+
         Args:
             vectorstore: The vector store to use for retrieval.
-            k: The number of documents to retrieve.
-            
+
         Returns:
-            A Chroma vector store instance.
+            A ParentDocumentRetriever instance.
+
         """
-        parent_splitter = RecursiveCharacterTextSplitter(chunk_size = 2000)
-        child_splitter = RecursiveCharacterTextSplitter(chunk_size = 400)
-        store = InMemoryStore()
-        retriever = ParentDocumentRetriever(
-            vectorstore=vectorstore,
-            parent_splitter=parent_splitter,
-            child_splitter=child_splitter,
-            docstore=store
-        )
-        retriever.add_documents(self.documents)
-        vectorstore.persist()
+        parent_splitter = RecursiveCharacterTextSplitter(chunk_size=2000)
+        child_splitter = RecursiveCharacterTextSplitter(chunk_size=400)
+
+        if docstore_path is not None:
+            fs = LocalFileStore(docstore_path)
+            store = create_kv_docstore(fs)
+
+            retriever = ParentDocumentRetriever(
+              vectorstore=vectorstore,
+              parent_splitter=parent_splitter,
+              child_splitter=child_splitter,
+              docstore=store
+            )
+        else:
+            fs = LocalFileStore("docstore")
+            store = create_kv_docstore(fs)
+
+            retriever = ParentDocumentRetriever(
+              vectorstore=vectorstore,
+              parent_splitter=parent_splitter,
+              child_splitter=child_splitter,
+              docstore=store
+          )
+            retriever.add_documents(self.documents)
+
         return retriever
 
-    def create_ensemble_retriever(self,dense_retriever, sparse_retriever, bm25_weight, pc_weight):
+    def create_ensemble_retriever(self, dense_retriever, sparse_retriever, bm25_weight, pc_weight):
         """
         Create an ensemble retriever that combines both dense and sparse retrievers.
-        
+
         Args:
             dense_retriever: The dense retriever to use.
             sparse_retriever: The sparse retriever to use.
-            
+            bm25_weight: Weight for the BM25 retriever.
+            pc_weight: Weight for the dense retriever.
+
         Returns:
             An EnsembleRetriever instance.
         """
@@ -112,14 +139,14 @@ class HybridRetriever:
             weights=[bm25_weight, pc_weight],
         )
         return ensemble
+
     def create_reranker(self, retriever):
         """
         Create a reranker for the retriever.
-        
+
         Args:
             retriever: The retriever to use.
-            k: The number of documents to retrieve.
-            
+
         Returns:
             A Reranker instance.
         """
@@ -130,35 +157,17 @@ class HybridRetriever:
         )
         return compression_retriever
 
-    def retrieve_documents(self,query, k=5):
+    def retrieve_documents(self, query, k=5):
         """
         Retrieve documents using the ensemble retriever.
-        
+
         Args:
             query: The query string to search for.
             k: The number of documents to retrieve.
-            
+
         Returns:
             A list of retrieved documents.
         """
         reranker = self.create_reranker(self.ensemble_retriever)
         results = reranker.get_relevant_documents(query)
         return results[:k]
-    
-
-if __name__ == "__main__":
-
-    with open('law_json.json', 'r', encoding='utf-8') as f:
-        documents = json.load(f)
-
-    retriever = HybridRetriever(documents, embedding_model_name="intfloat/multilingual-e5-large", bm25_weight=0.5, pc_weight=0.5)
-
-    query = "ما القيود المفروضة قانونياً على انتقاص حقوق العامل في اتفاقات العمل بغض النظر عن تاريخ الاتفاق"
-    results = retriever.retrieve_documents(query, k=5)
-    for result in results:
-        print(result.page_content)
-        print(result.metadata)
-
-    
-
-
