@@ -1,4 +1,4 @@
-from langchain.retrievers import BM25Retriever ,EnsembleRetriever
+from langchain.retrievers import BM25Retriever, EnsembleRetriever
 from langchain.schema import Document
 from langchain.vectorstores import Chroma
 from langchain.embeddings import HuggingFaceEmbeddings
@@ -14,8 +14,19 @@ import chromadb
 import json
 
 class HybridRetriever:
-    def __init__(self, documents,vectorstore_path = None,docstore_path = None,embedding_model_name="intfloat/multilingual-e5-large", bm25_weight=0.5, pc_weight=0.5):
-        documents = [Document(page_content=item['page_content'], metadata=item['metadata']) for item in documents]
+    def __init__(self, documents, vectorstore_path=None, docstore_path=None, embedding_model_name="intfloat/multilingual-e5-large", bm25_weight=0.5, pc_weight=0.5):
+        # Check if documents is a file path string
+        if isinstance(documents, str):
+            try:
+                with open(documents, 'r', encoding='utf-8') as f:
+                    raw_documents = json.load(f)
+                documents = [Document(page_content=item['page_content'], metadata=item['metadata']) for item in raw_documents]
+            except (FileNotFoundError, json.JSONDecodeError) as e:
+                raise ValueError(f"Error loading documents from file: {e}")
+        else:
+            # Assume documents is already a list of dictionaries with page_content and metadata
+            documents = [Document(page_content=item['page_content'], metadata=item['metadata']) for item in documents]
+        
         self.documents = documents
 
         if (vectorstore_path and not docstore_path) or (docstore_path and not vectorstore_path):

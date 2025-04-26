@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from src.rag.RAG_Pipeline import dummy_rag_service, rag_service
+from src.rag.RAG_Pipeline import dummy_rag_service, rag_pipeline
 from src.database.schema import insert_message, get_chat_history, get_user_chats, create_chat, update_chat_title, delete_chat, get_chat_by_id
 from src.database.models import QueryRequest, ChatCreateRequest, ChatUpdateRequest, ChatResponse, ChatListResponse, ChatHistoryResponse
 from src.apis.authentication import get_current_user
@@ -89,8 +89,8 @@ def generate_response(request: QueryRequest, current_user: dict = Depends(get_cu
         chat_id = create_chat(request.user_id)
     
     # Generate response using the real RAG service
-    response = rag_service.generate_response(request.query)
-    model = request.model or rag_service.llm_model_id
+    response = rag_pipeline.generate_response(request.query)
+    model = request.model or rag_pipeline.llm_model_id
     
     # Store the message in the database
     insert_message(chat_id, request.query, response, model)
