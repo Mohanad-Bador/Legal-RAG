@@ -199,7 +199,7 @@ def handle_user_question(user_question):
     
     if response.status_code == 200:
         data = response.json()
-        assistant_response = data["response"]
+        assistant_response = data["answer"]
         
         # Update the assistant message with the response
         with assistant_message:

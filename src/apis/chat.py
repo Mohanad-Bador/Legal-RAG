@@ -4,6 +4,7 @@ from src.database.schema import insert_message, get_chat_history, get_user_chats
 from src.database.models import QueryRequest, ChatCreateRequest, ChatUpdateRequest, ChatResponse, ChatListResponse, ChatHistoryResponse
 from src.apis.authentication import get_current_user
 from datetime import datetime
+import json  # Add this import
 
 router = APIRouter()
 
@@ -73,8 +74,8 @@ def generate_dummy_response(request: QueryRequest, current_user: dict = Depends(
     response = dummy_rag_service.generate_response(request.query)
     model = request.model or "default_model"
     
-    # Store the message in the database
-    insert_message(chat_id, request.query, response, model)
+    # Store the message in the database - updated to match new schema
+    insert_message(chat_id, request.query, response, json.dumps({"answer": response}), model)
     
     return {
         "response": response,
@@ -89,13 +90,19 @@ def generate_response(request: QueryRequest, current_user: dict = Depends(get_cu
         chat_id = create_chat(request.user_id)
     
     # Generate response using the real RAG service
-    response = rag_pipeline.generate_response(request.query)
+    rag_result = rag_pipeline.generate_response(request.query)
     model = request.model or rag_pipeline.llm_model_id
     
+    # Convert the dictionary response to a JSON string for database storage
+    rag_response_str = json.dumps(rag_result)
+    rag_answer = rag_result.get("answer", "")  # Extract the answer from the response
+
     # Store the message in the database
-    insert_message(chat_id, request.query, response, model)
+    insert_message(chat_id, request.query, rag_answer, rag_response_str, model)
     
+    # Return the response to the client
     return {
-        "response": response,
+        "response": rag_response_str,  # Return the full result object
+        "answer": rag_result.get("answer", ""),  # Also provide direct access to the answer
         "chat_id": chat_id
     }

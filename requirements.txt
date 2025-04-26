@@ -15,15 +15,13 @@ safetensors==0.5.3
 
 # Hybrid Retrieval
 langchain-community==0.3.19
-chromadb==0.6.3
+chromadb==1.0.7
 chroma-hnswlib==0.7.6
-
-# Retrieval
-langchain_chroma==0.2.2
+rank_bm25==0.2.2
 
 # Deployment
 streamlit==1.43.0
-fastapi==0.115.11
+fastapi==0.115.9
 uvicorn==0.34.0
 python-jose==3.4.0
 passlib==1.7.4
@@ -31,6 +29,9 @@ sqlite-web==0.6.4
 pyngrok==7.2.3
 pydantic==2.10.6
 python-multipart==0.0.20
+
+# Retrieval
+# langchain_chroma==0.2.2
 
 # # Evaluation
 # nltk==3.9.1n
