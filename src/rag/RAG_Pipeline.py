@@ -2,8 +2,8 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from sentence_transformers import SentenceTransformer
 import chromadb
 import torch
-from src.rag.retrieval import initialize_retrieval_pipeline
-from src.rag.generation import generate_answer
+# from src.rag.retrieval import initialize_retrieval_pipeline
+# from src.rag.generation import generate_answer
 from src.rag.hybrid_retrieval import HybridRetriever
 from src.rag.generation import LegalGenerator
 

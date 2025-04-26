@@ -1,62 +1,53 @@
 # Legal-RAG
 
-This project is a Retrieval-Augmented Generation (RAG) pipeline for legal inquiries. It uses various NLP models and tools to process and retrieve information from legal documents.
+A Retrieval-Augmented Generation (RAG) system specialized for legal queries, combining advanced language models with a hybrid retrieval system to provide accurate and contextually relevant answers to legal questions.
+
+## Overview
+
+Legal-RAG is designed to help users get precise answers to legal inquiries by combining:
+
+- **Hybrid Retrieval**: Uses both semantic search and keyword-based search to find the most relevant legal documents
+- **Advanced Generation**: Leverages state-of-the-art language models to generate coherent and accurate responses
+- **Multi-User System**: Supports user registration, authentication, and personalized chat history
+- **Interactive UI**: Clean Streamlit interface for easy interaction with the system
+
+## Project Structure
+
+```
+Legal-RAG/
+├── data/                    # Data storage
+│   ├── chromadb-law/        # Vector database storage
+│   └── docstore/            # Document storage
+├── src/
+│   ├── apis/                # FastAPI endpoints
+│   ├── database/            # Database models and schema
+│   ├── rag/                 # RAG components
+│   │   ├── hybrid_retrieval.py  # Hybrid retrieval system
+│   │   ├── generation.py    # Generation 
+│   │   └── RAG_Pipeline.py  # Main RAG pipeline
+│   └── ui/                  # Streamlit UI components
+└── app.py                   # Main application entry point
+```
 
 ## Requirements
 
-Make sure you have the following dependencies installed:
-
-```plaintext
-langchain==0.3.20
-langchain_chroma==0.2.2
-langchain_huggingface==0.1.2
-sentence-transformers==3.4.1
-transformers==4.48.3
-chromadb==0.6.3
-torch==2.5.1+cu124
-streamlit==1.43.0
-tokenizers==0.21.0
-pydantic==2.10.6
-langchain-community==0.3.19
-nltk==3.9.1
-rouge-score==0.1.2
-bert-score==0.3.13
-rouge==1.0.1
-datasets==3.3.2
-wikipedia==1.4.0
-unstructured==0.16.23
-stanza==1.10.1
-openpyxl==3.1.5
-pyarabic==0.6.15
-pyngrok==7.2.3
-pytest==8.3.4
-```
+The project requires Python 3.8+ and the dependencies listed in `requirements.txt`.
 
 ## Running on Google Colab
 
 Follow these steps to run the project on Google Colab:
 
-1. **Clone the Repository**
+1. **Create a New Colab Notebook**
 
-   Open a new Colab notebook and run the following command to clone the repository:
+   Go to [Google Colab](https://colab.research.google.com/) and create a new notebook.
+
+2. **Clone the Repository**
 
    ```python
    !git clone https://<YOUR_GITHUB_TOKEN>@github.com/Mohanad-Bador/Legal-RAG.git
    ```
 
-   Replace `<YOUR_GITHUB_TOKEN>` with your actual GitHub personal access token.
-
-2. **Navigate to the Project Directory**
-
-   Change the working directory to the project directory:
-
-   ```python
-   %cd Legal-RAG
-   ```
-
-3. **Add the Project Directory to the Python Path**
-
-   Add the project directory to the Python path:
+3. **Add Project to Python Path**
 
    ```python
    import sys
@@ -65,53 +56,82 @@ Follow these steps to run the project on Google Colab:
 
 4. **Install Dependencies**
 
-   Install the required dependencies:
-
    ```python
    !pip install -r requirements.txt
    ```
 
-5. **Run FastAPI and Streamlit**
 
-   Create a new cell and run the following commands to execute the script that runs both FastAPI and Streamlit:
+5. **Set Up Ngrok for Public Access**
 
    ```python
+   # Install pyngrok if not already installed
+   !pip install pyngrok
+   
    import uvicorn
    from pyngrok import ngrok
    from threading import Thread
 
-   # Authenticate ngrok with your authtoken
+   # Authenticate ngrok with your authtoken (get one from https://dashboard.ngrok.com)
    ngrok.set_auth_token("YOUR_NGROK_AUTH_TOKEN")
-
-   # Kill all existing ngrok tunnels
+   
+   # Kill any existing ngrok tunnels
    ngrok.kill()
+   ```
 
-   # Run FastAPI and Streamlit
+6. **Run the Application**
+
+   ```python
+   # Run the FastAPI and Streamlit application
    !python src/app.py
    ```
 
-6. **Access the Applications**
+7. **Access the Application**
 
-   After running the script, you will see the public URL for accessing the applications. Use the provided URL to access the Streamlit interface and interact with the FastAPI backend.
+   After running the application, you'll see URLs in the output. Use these URLs to access:
+   - Streamlit UI: For the user interface
+   - FastAPI Docs: For API documentation at `/docs` endpoint
 
 ## Using the Application
 
-### Streamlit Interface
+### User Authentication
 
-- **Ask a Question**: Enter your legal question in the input field and get a response.
-- **Register a User**: Register a new user by providing a username and email.
-- **Get User Information**: Retrieve information about a registered user by entering the username.
+1. **Register**: Create a new account with username, email, and password
+2. **Login**: Access your account with your credentials
+3. **Logout**: End your session securely
 
-### FastAPI Endpoints
+### Chat Interface
 
-- **Generate Response**: `POST /generate` - Generate a response for a given query.
-- **Create User**: `POST /users` - Create a new user with a username and email.
-- **Get User Info**: `GET /users/{username}` - Retrieve information about a user.
-- **Get Chat History**: `GET /history/{session_id}` - Retrieve chat history for a given session.
+1. **Start a New Chat**: Begin a new conversation with the legal assistant
+2. **Ask Questions**: Type legal queries and get AI-generated responses
+3. **View History**: Access your previous conversations
+4. **Rename Chats**: Organize your chats with custom titles
+5. **Delete Chats**: Remove unwanted conversations
 
-## Notes
+### API Endpoints
 
-- Ensure that the data files are in the correct paths as expected by the code.
-- Modify the paths and parameters as needed to fit your specific use case.
+The system exposes several RESTful API endpoints:
 
-This should help you get started with running your project on Google Colab. If you have any issues, please refer to the project's documentation or raise an issue on the repository.
+- **Authentication**: `/auth/login`, `/auth/signup`
+- **Chat Management**: `/chat/create`, `/chat/list/{user_id}`, `/chat/update`, `/chat/{chat_id}`
+- **Question Answering**: `/chat/generate`
+
+## Advanced Features
+
+### Hybrid Retrieval System
+
+The system uses a combination of:
+- **Dense Retrieval**: Semantic search using embeddings
+- **Sparse Retrieval**: Keyword-based search using BM25
+- **Reranking**: Cross-encoder to rerank results for maximum relevance
+
+### Database Schema
+
+The application uses SQLite with the following tables:
+- **Users**: Store user information and credentials
+- **Chats**: Organize conversations by user
+- **Messages**: Store individual messages with full response context
+
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
