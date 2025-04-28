@@ -75,22 +75,27 @@ class APIHelper:
         )
         return response
 
-# UI Helper Functions
 def fetch_chat_history(chat_id):
     if st.session_state.logged_in:
         response = APIHelper.fetch_chat_history(chat_id)
         if response.status_code == 200:
             st.session_state.chat_history = []
-            user_message = None
-            for message in response.json()["messages"]:
-                if message["role"] == "human":
-                    user_message = message["content"]
-                elif message["role"] == "ai" and user_message:  # Ensure we have a user message
+            
+            # Process messages in pairs
+            messages = response.json()["messages"]
+            i = 0
+            while i < len(messages) - 1:  # Process in user-AI pairs
+                user_message = messages[i]
+                ai_message = messages[i+1]
+                
+                if user_message["role"] == "human" and ai_message["role"] == "ai":
+                    # Store the message pair
                     st.session_state.chat_history.append({
-                        "user": user_message,
-                        "assistant": message["content"]
+                        "user": user_message["content"],
+                        "assistant": ai_message["content"],
+                        "contexts": ai_message.get("contexts", [])
                     })
-                    user_message = None  # Reset for next pair
+                i += 2
 
 def fetch_user_chats():
     if st.session_state.logged_in and st.session_state.user_id:
@@ -199,17 +204,35 @@ def handle_user_question(user_question):
     
     if response.status_code == 200:
         data = response.json()
-        assistant_response = data["answer"]
+        # Extract answer from the response
+        if isinstance(data, dict):
+            if "response" in data and isinstance(data["response"], dict):
+                assistant_response = data["response"].get("answer", str(data["response"]))
+                # Extract contexts if available
+                contexts = data["response"].get("contexts", [])
+            else:
+                # Fallback to stringifying the response if we can't find an answer field
+                assistant_response = str(data)
+                contexts = []
+        else:
+            assistant_response = str(data)
+            contexts = []
         
         # Update the assistant message with the response
         with assistant_message:
             response_placeholder.empty()
             st.write(assistant_response)
-        
+
+            # Add a button to show/hide context
+            if contexts:
+                # Create a context expander
+                with st.expander("Show sources", expanded=False):
+                    display_context({"contexts": contexts})
         # Append the new question and response to the chat history
         st.session_state.chat_history.append({
             "user": user_question,
-            "assistant": assistant_response
+            "assistant": assistant_response,
+            "contexts": contexts
         })
         
         # Check if this is the first message in the chat history then rerun to refresh the chat list
@@ -223,3 +246,49 @@ def handle_user_question(user_question):
             response_placeholder.empty()  # Clear the loading message
             st.error("Failed to get response from assistant")
         return False, "Failed to get response from assistant"
+
+def display_context(response_data):
+    """Display the context information in a structured format"""
+    
+    # Check if we have contexts
+    contexts = []
+    
+    # Handle different input formats
+    if isinstance(response_data, dict):
+        contexts = response_data.get("contexts", [])
+    elif isinstance(response_data, list):
+        contexts = response_data
+
+    if not contexts:
+        st.info("No context information available")
+        return
+    
+    # Display context articles
+    st.subheader("Context Articles")
+    for i, context in enumerate(contexts, 1):
+        with st.container():
+            st.markdown(f"**Article {i}**")
+            st.markdown(f"```\n{context}\n```")
+
+def render_chat_history():
+    """Render all messages in chat history with context expanders"""
+    if not hasattr(st.session_state, 'chat_history') or not st.session_state.chat_history:
+        return
+    
+    for msg in st.session_state.chat_history:
+        # Display user message
+        with st.chat_message("user"):
+            st.markdown(msg["user"])
+        
+        # Display assistant message
+        with st.chat_message("assistant"):
+            st.markdown(msg["assistant"])
+            
+            # Show context expander if available
+            contexts = msg.get("contexts", [])
+            if contexts:
+                with st.expander("Show sources and context", expanded=False):
+                    if isinstance(contexts, list):
+                        display_context(contexts)
+                    else:
+                        display_context({"contexts": contexts})

@@ -10,16 +10,13 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
-# Create the messages table - modified to include rag_answer column
+# Create the messages table
 def create_messages_table():
     conn = get_db_connection()
-    # First check if the table exists and drop it to recreate with the new schema
-    conn.execute('DROP TABLE IF EXISTS messages')
     conn.execute('''CREATE TABLE IF NOT EXISTS messages
                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
                      chat_id INTEGER,
                      user_query TEXT,
-                     rag_answer TEXT,
                      rag_response TEXT,
                      model TEXT,
                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -37,11 +34,11 @@ def create_chats_table():
                      FOREIGN KEY(user_id) REFERENCES users(id))''')
     conn.close()
 
-# Insert a new message into the messages table - fixed VALUES clause to match parameter count
-def insert_message(chat_id, user_query, rag_answer, rag_response, model):
+# Simplified insert_message function without separate rag_answer
+def insert_message(chat_id, user_query, rag_response, model):
     conn = get_db_connection()
-    conn.execute('INSERT INTO messages (chat_id, user_query, rag_answer, rag_response, model) VALUES (?, ?, ?, ?, ?)',
-                 (chat_id, user_query, rag_answer, rag_response, model))
+    conn.execute('INSERT INTO messages (chat_id, user_query, rag_response, model) VALUES (?, ?, ?, ?)',
+                 (chat_id, user_query, rag_response, model))
     conn.commit()
     conn.close()
 
@@ -97,17 +94,28 @@ def get_user_chats(user_id):
     conn.close()
     return chats
 
-# Get chat history for a given chat ID
+# Get chat history and extract answers from rag_response
 def get_chat_history(chat_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT user_query, rag_answer FROM messages WHERE chat_id = ? ORDER BY created_at', (chat_id,))
+    cursor.execute('SELECT user_query, rag_response FROM messages WHERE chat_id = ? ORDER BY created_at', (chat_id,))
     messages = []
     for row in cursor.fetchall():
+        # Extract answer and contexts from rag_response JSON
+        try:
+            rag_response_dict = json.loads(row['rag_response'])
+            ai_content = rag_response_dict.get('answer', '')
+            contexts = rag_response_dict.get('contexts', [])
+        except (json.JSONDecodeError, TypeError):
+            # Fallback to using the raw response if not valid JSON
+            ai_content = row['rag_response']
+            contexts = []
+            
         messages.extend([
             {"role": "human", "content": row['user_query']},
-            {"role": "ai", "content": row['rag_answer']}
+            {"role": "ai", "content": ai_content, "contexts": contexts}
         ])
+
     conn.close()
     return messages
 

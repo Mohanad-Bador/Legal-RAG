@@ -1,5 +1,5 @@
 import streamlit as st
-from api_helpers import handle_login, handle_signup, handle_user_question
+from api_helpers import handle_login, handle_signup, handle_user_question, render_chat_history
 from sidebar import render_sidebar
 
 # Initialize session state variables
@@ -113,16 +113,9 @@ else:
         current_chat = next((chat for chat in st.session_state.chat_list if chat["id"] == st.session_state.current_chat_id), None)
         if current_chat:
             st.write(f"Current Chat: {current_chat['title']}")
-    
-    # Display chat history
-    for message in st.session_state.chat_history:
-        # Display user message with user avatar
-        with st.chat_message("user"):
-            st.write(message["user"])
-        
-        # Display assistant message with assistant avatar
-        with st.chat_message("assistant"):
-            st.write(message["assistant"])
+
+    # Display chat history with context expanders
+    render_chat_history()
 
     user_question = st.chat_input("Ask your legal question here...", key="chat_input")
     

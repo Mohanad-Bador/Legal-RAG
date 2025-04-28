@@ -52,9 +52,38 @@ class DummyRAGService:
     def __init__(self):
         print("DummyRAGService initialized")
 
-    def generate_response(self, question: str):
+    def generate_response(self, question: str, k=5):
+        """
+        Provides a dummy response matching the structure of RAGPipeline's output.
+        
+        Args:
+            question: User question
+            k: Number of documents to retrieve (not actually used but kept for API compatibility)
+            
+        Returns:
+            dict: Contains dummy values for retrieved contexts and generated answer
+        """
         print(f"Received question: {question}")
-        return "This is a dummy response."
+        
+        # Create dummy response with the same structure as RAGPipeline
+        dummy_contexts = [
+            "This is a dummy context #1 for testing purposes.",
+            "This is a dummy context #2 for testing purposes."
+        ]
+        
+        dummy_metadata = [
+            {"source": "dummy_source_1", "title": "Dummy Document 1", "page": 1},
+            {"source": "dummy_source_2", "title": "Dummy Document 2", "page": 2}
+        ]
+        
+        combined_context = "\n\n".join(dummy_contexts)
+        
+        return {
+            "answer": f"This is a dummy response to question: '{question}'.",
+            "contexts": dummy_contexts,
+            "combined_context": combined_context,
+            "metadata": dummy_metadata
+        }
 
 # Initialize once
 dummy_rag_service = DummyRAGService()
@@ -133,10 +162,8 @@ class RAGPipeline:
         
         # Return both the retrieved contexts and the generated answer
         return {
-            "question": query,
-            "contexts": contexts,
-            "combined_context": combined_context,
             "answer": answer,
+            "contexts": contexts,
             "metadata": [doc.metadata for doc in retrieved_docs]
         }
 

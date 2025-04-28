@@ -35,6 +35,7 @@ class ChatListResponse(BaseModel):
 class MessageResponse(BaseModel):
     role: str
     content: str
+    contexts: Optional[List[str]] = None
 
 class ChatHistoryResponse(BaseModel):
     messages: List[MessageResponse]
