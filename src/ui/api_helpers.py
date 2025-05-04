@@ -61,6 +61,7 @@ class APIHelper:
     @classmethod
     def generate_response(cls, query, user_id, chat_id=None):
         response = requests.post(
+            # Change from generate to generate_dummy to use dummy API
             f"{cls.BASE_URL}/chat/generate",
             json={"query": query, "user_id": user_id, "chat_id": chat_id},
             headers=cls.get_headers()

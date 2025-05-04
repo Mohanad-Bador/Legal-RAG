@@ -60,8 +60,16 @@ Follow these steps to run the project on Google Colab:
    !pip install -r requirements.txt
    ```
 
+5. **Mount Google Drive and Set Finetuned Model Path**
 
-5. **Set Up Ngrok for Public Access**
+   ```python
+   from google.colab import drive
+   drive.mount('/gdrive')
+   ```
+
+   Update src/rag/RAG_pipeline.py RAGPipeline.init finetuned_model_id to the finetuned model path on your drive
+
+6. **Set Up Ngrok for Public Access**
 
    ```python
    # Install pyngrok if not already installed
@@ -78,14 +86,14 @@ Follow these steps to run the project on Google Colab:
    ngrok.kill()
    ```
 
-6. **Run the Application**
+7. **Run the Application**
 
    ```python
    # Run the FastAPI and Streamlit application
    !python src/app.py
    ```
 
-7. **Access the Application**
+8. **Access the Application**
 
    After running the application, you'll see URLs in the output. Use these URLs to access:
    - Streamlit UI: For the user interface

@@ -1,92 +1,53 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from sentence_transformers import SentenceTransformer
-import chromadb
-import torch
-# from src.rag.retrieval import initialize_retrieval_pipeline
-# from src.rag.generation import generate_answer
 from src.rag.hybrid_retrieval import HybridRetriever
 from src.rag.generation import LegalGenerator
-
-class RAGService:
-    def __init__(self):
-        self.device_map = "auto"
-        self.embedding_model_id = "intfloat/multilingual-e5-large"
-        self.llm_model_id = "Qwen/Qwen2.5-3B-Instruct"
-        self.persist_directory = "data/chromadb-law"
-        self.collection_name = "split_parents"
-        self.torch_dtype = torch.bfloat16
-
-        # Load embedding model
-        self.embed_model = SentenceTransformer(self.embedding_model_id)
-
-        # Load LLM model and tokenizer
-        self.tokenizer = AutoTokenizer.from_pretrained(self.llm_model_id)
-        self.llm_model = AutoModelForCausalLM.from_pretrained(
-            self.llm_model_id,
-            device_map=self.device_map,
-            torch_dtype=self.torch_dtype,
-        )
-
-        # Initialize ChromaDB client and collection
-        self.chroma_client = chromadb.PersistentClient(path=self.persist_directory)
-        try:
-            self.collection = self.chroma_client.get_collection(name=self.collection_name)
-        except chromadb.errors.InvalidCollectionException:
-            self.collection = self.chroma_client.create_collection(name=self.collection_name)
-
-        # Initialize retrieval pipeline
-        self.retriever, self.vector_store = initialize_retrieval_pipeline(
-            persist_directory=self.persist_directory,
-            collection_name=self.collection_name,
-            embedding_model_id=self.embedding_model_id,
-            top_k=5
-        )
-
-    def generate_response(self, question: str):
-        return generate_answer(question, self.embed_model, self.vector_store._collection, self.llm_model, self.tokenizer)
-
-# # Initialize once
-# rag_service = RAGService()
 
 class DummyRAGService:
     def __init__(self):
         print("DummyRAGService initialized")
+        # Initialize the hybrid retriever with default parameters
+        self.retriever = HybridRetriever(
+            documents="data/labour_data/law_with_articles.json",
+            vectorstore_path="data/chromadb-law",
+            docstore_path="data/docstore",
+            embedding_model_name="intfloat/multilingual-e5-large",
+            bm25_weight=0.5,
+            pc_weight=0.5
+        )
+        # We're not loading the full LLM to keep this lightweight
+        print("Hybrid retriever loaded successfully")
 
     def generate_response(self, question: str, k=5):
         """
-        Provides a dummy response matching the structure of RAGPipeline's output.
+        Provides a response using the hybrid retriever but with a dummy answer generator.
         
         Args:
             question: User question
-            k: Number of documents to retrieve (not actually used but kept for API compatibility)
+            k: Number of documents to retrieve
             
         Returns:
-            dict: Contains dummy values for retrieved contexts and generated answer
+            dict: Contains retrieved contexts from the hybrid retriever but dummy answer
         """
         print(f"Received question: {question}")
         
-        # Create dummy response with the same structure as RAGPipeline
-        dummy_contexts = [
-            "This is a dummy context #1 for testing purposes.",
-            "This is a dummy context #2 for testing purposes."
-        ]
+        # Use the actual hybrid retriever to get relevant documents
+        retrieved_docs = self.retriever.retrieve_documents(question, k=k)
         
-        dummy_metadata = [
-            {"source": "dummy_source_1", "title": "Dummy Document 1", "page": 1},
-            {"source": "dummy_source_2", "title": "Dummy Document 2", "page": 2}
-        ]
-        
-        combined_context = "\n\n".join(dummy_contexts)
+        # Extract contexts and metadata from retrieved documents
+        contexts = [doc.page_content for doc in retrieved_docs]
+        metadata = [doc.metadata for doc in retrieved_docs]
+        combined_context = "\n\n".join(contexts)
         
         return {
-            "answer": f"This is a dummy response to question: '{question}'.",
-            "contexts": dummy_contexts,
+            "answer": f"This is a dummy response to question: '{question}', but retrieved from actual documents.",
+            "contexts": contexts,
             "combined_context": combined_context,
-            "metadata": dummy_metadata
+            "metadata": metadata
         }
 
 # Initialize once
-dummy_rag_service = DummyRAGService()
+# dummy_rag_service = DummyRAGService() # Uncomment this line to use the dummy service
 
 
 class RAGPipeline:
@@ -96,6 +57,7 @@ class RAGPipeline:
                  llm_model_id="Qwen/Qwen2.5-3B-Instruct",
                  vectorstore_path="data/chromadb-law",
                  docstore_path="data/docstore",
+                #  Update the path to your finetuned model with your own path
                  finetuned_model_id="/gdrive/MyDrive/GP//llm-finetuning2/qwen-models/Qwen2.5-3B/",
                  bm25_weight=0.5,
                  pc_weight=0.5):
@@ -168,4 +130,4 @@ class RAGPipeline:
         }
 
 # Initialize once
-rag_pipeline = RAGPipeline()
+rag_pipeline = RAGPipeline() # Comment this line to use the Dummy service
