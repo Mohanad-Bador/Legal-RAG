@@ -31,6 +31,17 @@ class DummyRAGService:
         """
         print(f"Received question: {question}")
         
+        # # Create dummy response with the same structure as RAGPipeline
+        # contexts = [
+        #     "This is a dummy context #1 for testing purposes.",
+        #     "This is a dummy context #2 for testing purposes."
+        # ]
+        
+        # metadata = [
+        #     {"source": "dummy_source_1", "title": "Dummy Document 1", "page": 1},
+        #     {"source": "dummy_source_2", "title": "Dummy Document 2", "page": 2}
+        # ]
+
         # Use the actual hybrid retriever to get relevant documents
         retrieved_docs = self.retriever.retrieve_documents(question, k=k)
         

@@ -1,6 +1,10 @@
 import streamlit as st
 from api_helpers import handle_login, handle_signup, handle_user_question, render_chat_history
 from sidebar import render_sidebar
+from style_utils import load_css
+
+# Load all custom CSS
+load_css()
 
 # Initialize session state variables
 if 'chat_history' not in st.session_state:
@@ -69,15 +73,6 @@ if not st.session_state.logged_in:
         with modal_container:
             # Add some styling to make it look like a modal
             st.markdown("""
-                <style>
-                .signup-modal {
-                    background-color: #ff4b4b;
-                    padding: 20px;
-                    border-radius: 10px;
-                    border: 1px solid #ddd;
-                    margin: 10px 0;
-                }
-                </style>
                 <div class="signup-modal">
                 <h3>Create a New Account</h3>
                 </div>
@@ -106,13 +101,14 @@ else:
     render_sidebar()
 
     # Main chat area
-    st.write("### Egyptian Legal Assistant")
+    if st.session_state.current_chat_id is None:
+        st.write("### How Can I Help You?")
     
     # Display current chat title if a chat is selected
     if st.session_state.current_chat_id:
         current_chat = next((chat for chat in st.session_state.chat_list if chat["id"] == st.session_state.current_chat_id), None)
         if current_chat:
-            st.write(f"Current Chat: {current_chat['title']}")
+            st.write(f"### Current Chat: {current_chat['title']}")
 
     # Display chat history with context expanders
     render_chat_history()
