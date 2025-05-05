@@ -68,7 +68,7 @@ class RAGPipeline:
                  llm_model_id="Qwen/Qwen2.5-3B-Instruct",
                  vectorstore_path="data/chromadb-law",
                  docstore_path="data/docstore",
-                #  Update the path to your finetuned model with your own path
+                #  Update the path to finetuned model with your own path
                  finetuned_model_id="/gdrive/MyDrive/GP//llm-finetuning2/qwen-models/Qwen2.5-3B/",
                  bm25_weight=0.5,
                  pc_weight=0.5):

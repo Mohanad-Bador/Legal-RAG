@@ -3,7 +3,6 @@ from langchain.schema import Document
 from langchain.vectorstores import Chroma
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.storage import InMemoryStore
 from langchain.retrievers import ParentDocumentRetriever
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import CrossEncoderReranker
@@ -11,6 +10,8 @@ from langchain_community.cross_encoders import HuggingFaceCrossEncoder
 from langchain.storage import LocalFileStore
 from langchain.storage._lc_store import create_kv_docstore
 import chromadb
+import torch
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import json
 
 class HybridRetriever:
@@ -42,6 +43,9 @@ class HybridRetriever:
 
         self.dense = self.create_dense_retriever(self.vectorstore,docstore_path)
         self.ensemble_retriever = self.create_ensemble_retriever(self.dense, self.sparse, bm25_weight, pc_weight)
+        self.tokenizer = AutoTokenizer.from_pretrained("BAAI/bge-reranker-v2-m3")
+        self.model = AutoModelForSequenceClassification.from_pretrained("BAAI/bge-reranker-v2-m3")
+        self.model.eval()  # Set the model to evaluation mode
 
     def create_vectorstore(self,embedding_model_name):
         """
@@ -69,7 +73,6 @@ class HybridRetriever:
         """
         embeddings = HuggingFaceEmbeddings(model_name=embedding_model_name)
         persist_cilent = chromadb.PersistentClient(path=persist_directory)
-        collection = persist_cilent.get_collection(name="split_parents")
         vectorstore = Chroma(
             client=persist_cilent,
             collection_name="split_parents",
@@ -151,22 +154,46 @@ class HybridRetriever:
         )
         return ensemble
 
-    def create_reranker(self, retriever):
-        """
-        Create a reranker for the retriever.
+    def normalize_scores(self,scores):
+        min_score = min(scores)
+        max_score = max(scores)
+        normalized_scores = [(score - min_score) / (max_score - min_score) if max_score > min_score else 0 for score in scores]
+        return normalized_scores
+    
+    def rerank(self,query, documents, rank_diff_threshold=0.2, top_n=None):
+        # Create (query, document) pairs using only the text content
+        pairs = [[query, doc] for doc in documents]
 
-        Args:
-            retriever: The retriever to use.
+        with torch.no_grad():
+            inputs = self.tokenizer(pairs, padding=True, truncation=True, return_tensors='pt', max_length=512)
+            scores = self.model(**inputs, return_dict=True).logits.view(-1).float()
 
-        Returns:
-            A Reranker instance.
-        """
-        model = HuggingFaceCrossEncoder(model_name="BAAI/bge-reranker-v2-m3")
-        compressor = CrossEncoderReranker(model=model, top_n=3)
-        compression_retriever = ContextualCompressionRetriever(
-            base_compressor=compressor, base_retriever=retriever
-        )
-        return compression_retriever
+        # Sort documents by score descending
+        scored_docs = sorted(zip(documents, scores.tolist()), key=lambda x: x[1], reverse=True)
+
+        # Normalize the scores between 0 and 1
+        document_scores = [score for doc, score in scored_docs]
+        normalized_scores = self.normalize_scores(document_scores)
+
+        # Re-assign normalized scores back to the documents
+        scored_docs = [(doc, normalized_score) for (doc, score), normalized_score in zip(scored_docs, normalized_scores)]
+
+        # Compute rank differences
+        rank_diffs = [scored_docs[i][1] - scored_docs[i+1][1] for i in range(len(scored_docs)-1)]
+
+        # Dynamically adjust top_k based on rank differences
+        if top_n is None:
+            top_n = len(scored_docs)
+
+        selected_docs = []
+        for i in range(top_n):
+            selected_docs.append(scored_docs[i])
+
+            # Stop if rank difference between consecutive documents is greater than the threshold
+            if i < len(rank_diffs) and rank_diffs[i] > rank_diff_threshold:
+                break
+
+        return selected_docs
 
     def retrieve_documents(self, query, k=5):
         """
@@ -179,6 +206,9 @@ class HybridRetriever:
         Returns:
             A list of retrieved documents.
         """
-        reranker = self.create_reranker(self.ensemble_retriever)
-        results = reranker.get_relevant_documents(query)
-        return results[:k]
+        results = self.ensemble_retriever.get_relevant_documents(query)
+        page_contents = [doc.page_content for doc in results]
+        unique_documents_page_contents = list(set(page_contents))
+        reranked = self.rerank(query, unique_documents_page_contents)
+        relevant_docs = [doc for doc, score in reranked]
+        return relevant_docs[:k]
