@@ -17,29 +17,41 @@ METRIC_MAP = {
     'context_recall': context_recall
 }
 
-def evaluate_dataset(data_samples, model_name, metrics, output_file='score.csv'):
+from tqdm import tqdm
+
+def evaluate_dataset(data_samples, model_name, metrics, output_file='score.csv', batch_size=10):
     api_key = os.getenv("OPENAI_API_KEY")
-    
     if not api_key:
         raise ValueError("API key not found. Please set it in the .env file.")
-
+    
     os.environ["OPENAI_MODEL"] = model_name
-    dataset = Dataset.from_list(data_samples)
 
     logging.info("Starting evaluation with model: %s", model_name)
     logging.info("Metrics to evaluate: %s", metrics)
+    logging.info("Batch size: %d", batch_size)
 
-    # Evaluate the dataset
-    score = evaluate(dataset, metrics=metrics)
+    all_scores = []
 
-    # Assuming score contains loss or other relevant information
-    logging.info("Evaluation completed. Score: %s", score)
+    for i in tqdm(range(0, len(data_samples), batch_size), desc="Evaluating batches"):
+        batch = data_samples[i:i + batch_size]
+        try:
+            dataset = Dataset.from_list(batch)
+            score = evaluate(dataset, metrics=metrics)
+            df_batch = score.to_pandas()
+            all_scores.append(df_batch)
+        except Exception as e:
+            logging.warning("Batch %d-%d failed with error: %s", i, i+batch_size, str(e))
+    
+    if not all_scores:
+        raise RuntimeError("All batches failed. No scores to save.")
 
-    df = score.to_pandas()
-    df.to_csv(output_file, index=False, encoding='utf-8')
+    final_df = pd.concat(all_scores, ignore_index=True)
+
+    final_df.to_csv(output_file, index=False, encoding='utf-8')
     logging.info("Results saved to %s", output_file)
 
-    return df
+    return final_df
+
 
 def main():
     load_dotenv()  # Load environment variables from .env file
