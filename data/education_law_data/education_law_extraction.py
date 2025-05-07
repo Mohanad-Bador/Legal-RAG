@@ -250,6 +250,40 @@ def extract_headers_from_markdown(file_path):
     
     return chapters
 
+# Function to add header to articles in a JSON file
+def add_article_header(json_file_path):
+    """
+    Add metadata to articles in a JSON file.
+
+    Parameters:
+        json_file_path (str): Path to the JSON file containing articles.
+
+    Returns:
+        None
+    """
+    with open(json_file_path, 'r', encoding='utf-8') as jsonfile:
+        articles = json.load(jsonfile)
+
+    updated_articles = []
+
+    for article in articles:
+        article_number = article['article_number']
+        article_details = article['article_details']
+        updated_article_details = []
+
+        lines = article_details.split('\n')
+        for i, line in enumerate(lines):
+            if i == 0:
+                updated_article_details.append(f"المادة {article_number} من قانون التعليم المصري: {line}")
+            else:
+                updated_article_details.append(line)
+
+        article['article_details'] = '\n'.join(updated_article_details)
+        updated_articles.append(article)
+
+    with open(json_file_path, 'w', encoding='utf-8') as jsonfile:
+        json.dump(updated_articles, jsonfile, ensure_ascii=False, indent=4)
+
 
 if __name__ == "__main__":
 
@@ -265,6 +299,9 @@ if __name__ == "__main__":
     # Fourth step: Link articles with their references based on text from a JSON file
     link_article_references_from_json("education_law.json", "education_law.json")
     
+    # Fifth step: Add header to articles in a JSON file
+    add_article_header("education_law.json")
+
     # # Check for chapters and sections in the Markdown file
     # chapters_sections = extract_headers_from_markdown("education_law.md")
     # for chapter, sections in chapters_sections.items():
