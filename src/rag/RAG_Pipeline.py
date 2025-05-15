@@ -63,7 +63,7 @@ class DummyRAGService:
 
 class RAGPipeline:
     def __init__(self, 
-                 documents="data/labour_data/law_with_articles.json",
+                 documents="data/merged_data/processed_documents.jsonn",
                  embedding_model_name="intfloat/multilingual-e5-large",
                  llm_model_id="Qwen/Qwen2.5-3B-Instruct",
                  vectorstore_path="data/chromadb-law",
@@ -124,7 +124,7 @@ class RAGPipeline:
             raise ValueError("Retriever has not been initialized. Call initialize_retriever with documents first.")
         
         # Retrieve relevant documents
-        retrieved_docs = self.retriever.retrieve_documents(query, k=k)
+        retrieved_docs = self.retriever.retrieve_documents(query)
         
         # Extract context from retrieved documents
         contexts = [doc.page_content for doc in retrieved_docs]
