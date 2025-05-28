@@ -26,8 +26,11 @@ class HybridRetriever:
         else:
             # Assume documents is already a list of dictionaries with page_content and metadata
             documents = [Document(page_content=item['page_content'], metadata=item['metadata']) for item in documents]
+        setup_nlp_tools()
+        processed_documents = self.process_dataset(documents)
+        processed_documents =[Document(page_content=item['page_content'], metadata=item['metadata']) for item in processed_documents]
         
-        self.documents = documents
+        self.documents = processed_documents
 
         if (vectorstore_path and not docstore_path) or (docstore_path and not vectorstore_path):
           raise ValueError("You must provide both 'vectorstore_path' and 'docstore_path', or neither.")
@@ -37,8 +40,6 @@ class HybridRetriever:
         else:
             self.vectorstore = self.create_vectorstore(embedding_model_name)
 
-
-        setup_nlp_tools()
 
         self.sparse = self.create_sparse_retriever(documents)
 
@@ -67,6 +68,29 @@ class HybridRetriever:
             collection_name="law_collection",
         )
         return vectorstore
+    def process_dataset(self,documents):
+      """
+      Process the entire dataset by applying the clean_text function to each document.
+      """
+      processed_documents = []
+
+      for document in documents:
+          # Save the original text in metadata
+          document.metadata['original_text'] = document.page_content
+
+          # Apply the clean_text function to the page content
+          cleaned_content = clean_text(document.page_content)
+
+          # Create a new processed document
+          processed_document = {
+              'page_content': cleaned_content,
+              'metadata': document.metadata
+          }
+
+          # Append the processed document to the new dataset
+          processed_documents.append(processed_document)
+
+      return processed_documents
 
     def load_vectorstore(self,persist_directory,embedding_model_name):
         """
