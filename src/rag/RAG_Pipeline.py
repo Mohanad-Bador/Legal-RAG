@@ -63,13 +63,13 @@ class DummyRAGService:
 
 class RAGPipeline:
     def __init__(self, 
-                 documents="data/merged_data/documents.jsonn",
+                 documents="data/merged_data/documents.json",
                  embedding_model_name="intfloat/multilingual-e5-large",
                  llm_model_id="Qwen/Qwen2.5-3B-Instruct",
                  vectorstore_path="data/chromadb-law",
                  docstore_path="data/docstore",
                 #  Update the path to finetuned model with your own path
-                 finetuned_model_id="/gdrive/MyDrive/GP//llm-finetuning2/qwen-models/Qwen2.5-3B/",
+                 finetuned_model_id="/gdrive/MyDrive/GP/llm-finetuning2/qwen-models/Qwen2.5-3B/",
                  bm25_weight=0.5,
                  pc_weight=0.5):
         """
