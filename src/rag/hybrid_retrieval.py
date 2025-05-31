@@ -4,15 +4,14 @@ from langchain.vectorstores import Chroma
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.retrievers import ParentDocumentRetriever
-from langchain.retrievers import ContextualCompressionRetriever
-from langchain.retrievers.document_compressors import CrossEncoderReranker
-from langchain_community.cross_encoders import HuggingFaceCrossEncoder
 from langchain.storage import LocalFileStore
 from langchain.storage._lc_store import create_kv_docstore
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from src.rag.preprocessing_pipline import clean_text,setup_nlp_tools
 import chromadb
 import torch
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import json
+from copy import deepcopy
 
 class HybridRetriever:
     def __init__(self, documents, vectorstore_path=None, docstore_path=None, embedding_model_name="intfloat/multilingual-e5-large", bm25_weight=0.5, pc_weight=0.5):
@@ -27,8 +26,11 @@ class HybridRetriever:
         else:
             # Assume documents is already a list of dictionaries with page_content and metadata
             documents = [Document(page_content=item['page_content'], metadata=item['metadata']) for item in documents]
+        setup_nlp_tools()
+        processed_documents = self.process_dataset(documents)
+        processed_documents =[Document(page_content=item['page_content'], metadata=item['metadata']) for item in processed_documents]
         
-        self.documents = documents
+        self.documents = processed_documents
 
         if (vectorstore_path and not docstore_path) or (docstore_path and not vectorstore_path):
           raise ValueError("You must provide both 'vectorstore_path' and 'docstore_path', or neither.")
@@ -63,9 +65,32 @@ class HybridRetriever:
         vectorstore = Chroma(
             embedding_function=embeddings,
             persist_directory=persist_directory,
-            collection_name="split_parents",
+            collection_name="law_collection",
         )
         return vectorstore
+    def process_dataset(self,documents):
+      """
+      Process the entire dataset by applying the clean_text function to each document.
+      """
+      processed_documents = []
+
+      for document in documents:
+          # Save the original text in metadata
+          document.metadata['original_text'] = document.page_content
+
+          # Apply the clean_text function to the page content
+          cleaned_content = clean_text(document.page_content)
+
+          # Create a new processed document
+          processed_document = {
+              'page_content': cleaned_content,
+              'metadata': document.metadata
+          }
+
+          # Append the processed document to the new dataset
+          processed_documents.append(processed_document)
+
+      return processed_documents
 
     def load_vectorstore(self,persist_directory,embedding_model_name):
         """
@@ -75,7 +100,7 @@ class HybridRetriever:
         persist_cilent = chromadb.PersistentClient(path=persist_directory)
         vectorstore = Chroma(
             client=persist_cilent,
-            collection_name="split_parents",
+            collection_name="law_collection",
             embedding_function=embeddings,
             persist_directory=persist_directory
         )
@@ -160,42 +185,53 @@ class HybridRetriever:
         normalized_scores = [(score - min_score) / (max_score - min_score) if max_score > min_score else 0 for score in scores]
         return normalized_scores
     
-    def rerank(self,query, documents, rank_diff_threshold=0.2, top_n=None):
+    def rerank(self,query, documents, rank_diff_threshold=0.2):
+        """
+        Rerank a list of Document objects based on their relevance to the query.
+
+        Args:
+            query (str): The query string.
+            documents (list[Document]): A list of Document objects to rerank.
+            rank_diff_threshold (float): The threshold for rank difference to stop reranking.
+
+        Returns:
+            list[Document]: A list of reranked Document objects.
+        """
+        # Extract the text content from the Document objects
+        document_texts = [doc.metadata["original_text"] for doc in documents]
+
         # Create (query, document) pairs using only the text content
-        pairs = [[query, doc] for doc in documents]
+        pairs = [[query, doc_text] for doc_text in document_texts]
 
         with torch.no_grad():
             inputs = self.tokenizer(pairs, padding=True, truncation=True, return_tensors='pt', max_length=512)
             scores = self.model(**inputs, return_dict=True).logits.view(-1).float()
 
-        # Sort documents by score descending
+        # Sort documents by raw score descending
         scored_docs = sorted(zip(documents, scores.tolist()), key=lambda x: x[1], reverse=True)
 
-        # Normalize the scores between 0 and 1
-        document_scores = [score for doc, score in scored_docs]
-        normalized_scores = self.normalize_scores(document_scores)
+        # Normalize scores to 0-1
+        raw_scores = [score for _, score in scored_docs]
+        normalized_scores = self.normalize_scores(raw_scores)
+        scored_docs = [(doc, norm_score) for (doc, _), norm_score in zip(scored_docs, normalized_scores)]
 
-        # Re-assign normalized scores back to the documents
-        scored_docs = [(doc, normalized_score) for (doc, score), normalized_score in zip(scored_docs, normalized_scores)]
-
-        # Compute rank differences
-        rank_diffs = [scored_docs[i][1] - scored_docs[i+1][1] for i in range(len(scored_docs)-1)]
-
-        # Dynamically adjust top_k based on rank differences
-        if top_n is None:
-            top_n = len(scored_docs)
-
+        # Apply filtering
         selected_docs = []
-        for i in range(top_n):
-            selected_docs.append(scored_docs[i])
+        for i in range(len(scored_docs)):
+            doc, score = scored_docs[i]
+            # Create a new Document object with the same content and metadata
+            cleaned_metadata = deepcopy(doc.metadata)
+            cleaned_metadata.pop("original_text", None) 
+            selected_docs.append(Document(page_content=doc.metadata["original_text"], metadata=cleaned_metadata))
 
-            # Stop if rank difference between consecutive documents is greater than the threshold
-            if i < len(rank_diffs) and rank_diffs[i] > rank_diff_threshold:
-                break
+            # Stop if rank difference is large
+            if i < len(scored_docs) - 1:
+                if score - scored_docs[i + 1][1] > rank_diff_threshold:
+                    break
 
         return selected_docs
 
-    def retrieve_documents(self, query, k=5):
+    def retrieve_documents(self, query):
         """
         Retrieve documents using the ensemble retriever.
 
@@ -206,9 +242,8 @@ class HybridRetriever:
         Returns:
             A list of retrieved documents.
         """
-        results = self.ensemble_retriever.get_relevant_documents(query)
-        page_contents = [doc.page_content for doc in results]
-        unique_documents_page_contents = list(set(page_contents))
-        reranked = self.rerank(query, unique_documents_page_contents)
-        relevant_docs = [doc for doc, score in reranked]
-        return relevant_docs[:k]
+        processed_query = clean_text(query)
+        results = self.ensemble_retriever.get_relevant_documents(processed_query)
+        unique_documents ={doc.metadata['article_number']: doc for doc in results}.values()
+        reranked = self.rerank(query, unique_documents)
+        return reranked

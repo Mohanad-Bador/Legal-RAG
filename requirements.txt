@@ -1,21 +1,22 @@
 # Data Preprocessing
-langchain==0.3.20
+langchain== 0.3.25
 langchain-huggingface==0.1.2
-sentence-transformers==3.4.1
+sentence-transformers== 4.1.0
 pyarabic==0.6.15
-langchain-core==0.3.55
+langchain-core==0.3.59
 langchain-text-splitters==0.3.8
+stanza==1.10.1
 
 # Generation
-transformers==4.48.3
-torch==2.6.0
+transformers==4.51.3
+torch==2.6.0+cu124
 torchvision==0.21.0+cu124
-accelerate==1.5.2
+accelerate==1.6.0
 safetensors==0.5.3
 
 # Hybrid Retrieval
-langchain-community==0.3.19
-chromadb==1.0.7
+langchain-community==0.3.24
+chromadb==1.0.9
 chroma-hnswlib==0.7.6
 rank_bm25==0.2.2
 

@@ -8,7 +8,7 @@ class DummyRAGService:
         print("DummyRAGService initialized")
         # Initialize the hybrid retriever with default parameters
         self.retriever = HybridRetriever(
-            documents="data/labour_data/law_with_articles.json",
+            documents="data/merged_data/documents.json",
             vectorstore_path="data/chromadb-law",
             docstore_path="data/docstore",
             embedding_model_name="intfloat/multilingual-e5-large",
@@ -43,7 +43,7 @@ class DummyRAGService:
         # ]
 
         # Use the actual hybrid retriever to get relevant documents
-        retrieved_docs = self.retriever.retrieve_documents(question, k=k)
+        retrieved_docs = self.retriever.retrieve_documents(question)
         
         # Extract contexts and metadata from retrieved documents
         contexts = [doc.page_content for doc in retrieved_docs]
@@ -63,13 +63,13 @@ class DummyRAGService:
 
 class RAGPipeline:
     def __init__(self, 
-                 documents="data/labour_data/law_with_articles.json",
+                 documents="data/merged_data/documents.json",
                  embedding_model_name="intfloat/multilingual-e5-large",
                  llm_model_id="Qwen/Qwen2.5-3B-Instruct",
                  vectorstore_path="data/chromadb-law",
                  docstore_path="data/docstore",
                 #  Update the path to finetuned model with your own path
-                 finetuned_model_id="/gdrive/MyDrive/GP//llm-finetuning2/qwen-models/Qwen2.5-3B/",
+                 finetuned_model_id="/gdrive/MyDrive/GP/llm-finetuning2/qwen-models/Qwen2.5-3B/",
                  bm25_weight=0.5,
                  pc_weight=0.5):
         """
@@ -124,7 +124,7 @@ class RAGPipeline:
             raise ValueError("Retriever has not been initialized. Call initialize_retriever with documents first.")
         
         # Retrieve relevant documents
-        retrieved_docs = self.retriever.retrieve_documents(query, k=k)
+        retrieved_docs = self.retriever.retrieve_documents(query)
         
         # Extract context from retrieved documents
         contexts = [doc.page_content for doc in retrieved_docs]
