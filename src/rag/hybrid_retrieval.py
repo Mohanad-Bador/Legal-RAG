@@ -11,7 +11,7 @@ from src.rag.preprocessing_pipline import clean_text,setup_nlp_tools
 import chromadb
 import torch
 import json
-from copy import deepcopy
+import ast
 
 class HybridRetriever:
     def __init__(self, documents, vectorstore_path=None, docstore_path=None, embedding_model_name="intfloat/multilingual-e5-large", bm25_weight=0.5, pc_weight=0.5):
@@ -31,6 +31,11 @@ class HybridRetriever:
         processed_documents =[Document(page_content=item['page_content'], metadata=item['metadata']) for item in processed_documents]
         
         self.documents = processed_documents
+
+        self.doc_lookup = {
+        (doc.metadata.get("law"), str(doc.metadata.get("article_number"))): doc
+        for doc in documents
+        }
 
         if (vectorstore_path and not docstore_path) or (docstore_path and not vectorstore_path):
           raise ValueError("You must provide both 'vectorstore_path' and 'docstore_path', or neither.")
@@ -219,10 +224,8 @@ class HybridRetriever:
         selected_docs = []
         for i in range(len(scored_docs)):
             doc, score = scored_docs[i]
-            # Create a new Document object with the same content and metadata
-            cleaned_metadata = deepcopy(doc.metadata)
-            cleaned_metadata.pop("original_text", None) 
-            selected_docs.append(Document(page_content=doc.metadata["original_text"], metadata=cleaned_metadata))
+            doc_with_linked_articles = self.get_linked_articles(doc)
+            selected_docs.append(doc_with_linked_articles) 
 
             # Stop if rank difference is large
             if i < len(scored_docs) - 1:
@@ -230,7 +233,29 @@ class HybridRetriever:
                     break
 
         return selected_docs
+    
+    def get_linked_articles(self,document):
+        law = document.metadata.get("law")
+        linked_articles = document.metadata.get("linked_articles")
 
+        row = [document.metadata.get("original_text")] 
+        if linked_articles:
+            try:
+                articles_list = ast.literal_eval(linked_articles)
+                for article in articles_list:
+                    article_str = str(article)
+                    linked_key = (law, article_str)
+
+                    linked_doc = self.doc_lookup.get(linked_key)
+                    if linked_doc:
+                        row.append(linked_doc.metadata.get("original_text"))
+                    else:
+                        print(f"Warning: Linked document not found for {linked_key}")
+
+            except Exception as e:
+                print(f"Error parsing linked_articles: {linked_articles}\n{e}")
+        return row
+     
     def retrieve_documents(self, query):
         """
         Retrieve documents using the ensemble retriever.
