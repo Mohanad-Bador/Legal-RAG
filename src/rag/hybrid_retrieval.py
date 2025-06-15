@@ -234,7 +234,7 @@ class HybridRetriever:
         return selected_docs
     
     def get_linked_articles(self,document):
-        law = document.metadata.get("law")
+        law = document.metadata.get("law_short")
         linked_articles = document.metadata.get("linked_articles")
 
         row = [document.metadata.get("original_text")] 
@@ -243,7 +243,7 @@ class HybridRetriever:
                 articles_list = ast.literal_eval(linked_articles)
                 for article in articles_list:
                     article_str = str(article)
-                    linked_key = (law, article_str)
+                    linked_key = (article_str,law)
 
                     linked_doc = self.doc_lookup.get(linked_key)
                     if linked_doc:
