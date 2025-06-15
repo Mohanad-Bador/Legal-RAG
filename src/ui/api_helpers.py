@@ -135,8 +135,13 @@ def delete_user_chat(chat_id):
             st.rerun()
 
 def select_chat(chat_id):
+    """Select a chat and reset all expander states"""
     st.session_state.current_chat_id = chat_id
+
+    # Clear and fetch new chat history
+    st.session_state.chat_history = []
     fetch_chat_history(chat_id)
+    
     st.rerun()
 
 def handle_login(username, password):
@@ -229,6 +234,7 @@ def handle_user_question(user_question):
                 # Create a context expander
                 with st.expander("Show sources", expanded=False):
                     display_context({"contexts": contexts})
+
         # Append the new question and response to the chat history
         st.session_state.chat_history.append({
             "user": user_question,
@@ -266,10 +272,29 @@ def display_context(response_data):
     
     # Display context articles
     st.subheader("Context Articles")
-    for i, context in enumerate(contexts, 1):
+    for i, context_group in enumerate(contexts, 1):
         with st.container():
-            st.markdown(f"**Article {i}**")
-            st.markdown(f"```\n{context}\n```")
+            # Handle 2D array structure (each row represents an article with potential linked articles)
+            if isinstance(context_group, list):
+                # Display the primary article (first element of the row)
+                st.markdown(f"**Article {i}**")
+                st.markdown(f"```\n{context_group[0]}\n```")
+                
+                # Display linked articles if the row contains multiple elements
+                if len(context_group) > 1:
+                    # Create collapsible section with HTML details/summary for instant toggle
+                    linked_html = '<details><summary>Show related articles</summary><div style="margin-left: 20px; padding: 10px;">'
+                    for j, linked_context in enumerate(context_group[1:], 1):
+                        linked_html += f'<p><strong>Related Article {i}.{j}</strong></p>'
+                        # Style each linked article with indentation, background, and left border
+                        linked_html += f'<pre style="margin-left: 10px; background-color: #f8f9fa; padding: 10px; border-left: 3px solid #007acc;"><code>{linked_context}</code></pre>'
+                    linked_html += "</div></details>"
+                    
+                    st.markdown(linked_html, unsafe_allow_html=True)
+            else:
+                # Handle single context (string) - display as regular article
+                st.markdown(f"**Article {i}**")
+                st.markdown(f"```\n{context_group}\n```")
 
 def render_chat_history():
     """Render all messages in chat history with context expanders"""

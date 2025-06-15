@@ -3,6 +3,13 @@ from api_helpers import handle_login, handle_signup, handle_user_question, rende
 from sidebar import render_sidebar
 from style_utils import load_css
 
+# Page configuration
+st.set_page_config(
+    page_title="Legal RAG",
+    page_icon="⚖️",
+    initial_sidebar_state="expanded"
+)
+
 # Load all custom CSS
 load_css()
 

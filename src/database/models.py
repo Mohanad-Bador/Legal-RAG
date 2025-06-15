@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Union
 from datetime import datetime
 
 # Request models
@@ -35,7 +35,7 @@ class ChatListResponse(BaseModel):
 class MessageResponse(BaseModel):
     role: str
     content: str
-    contexts: Optional[List[str]] = None
+    contexts: List[List[str]]  = None
 
 class ChatHistoryResponse(BaseModel):
-    messages: List[MessageResponse]
+    messages: List[Union[dict, MessageResponse]]
