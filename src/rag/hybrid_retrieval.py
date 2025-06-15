@@ -11,6 +11,7 @@ from src.rag.preprocessing_pipline import clean_text,setup_nlp_tools,extract_art
 import torch
 import json
 import ast
+import chromadb
 
 class HybridRetriever:
     def __init__(self, documents, vectorstore_path=None, docstore_path=None, embedding_model_name="intfloat/multilingual-e5-large", bm25_weight=0.5, pc_weight=0.5):
@@ -31,7 +32,7 @@ class HybridRetriever:
         
         self.documents = processed_documents
 
-        doc_lookup = {
+        self.doc_lookup = {
         (str(doc.metadata.get("article_number")),doc.metadata.get("law_short")): doc
         for doc in documents}
 

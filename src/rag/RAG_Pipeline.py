@@ -8,7 +8,7 @@ class DummyRAGService:
         print("DummyRAGService initialized")
         # Initialize the hybrid retriever with default parameters
         self.retriever = HybridRetriever(
-            documents="data/merged_data/documents.json",
+            documents="data/merged_data/legal_articles_with_short.json",
             vectorstore_path="data/chromadb-law",
             docstore_path="data/docstore",
             embedding_model_name="intfloat/multilingual-e5-large",
@@ -56,7 +56,7 @@ class DummyRAGService:
 
 class RAGPipeline:
     def __init__(self, 
-                 documents="data/merged_data/documents.json",
+                 documents="data/merged_data/legal_articles_with_short.json",
                  embedding_model_name="intfloat/multilingual-e5-large",
                  llm_model_id="Qwen/Qwen2.5-3B-Instruct",
                  vectorstore_path="data/chromadb-law",
