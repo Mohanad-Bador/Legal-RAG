@@ -50,8 +50,8 @@ if not st.session_state.logged_in:
     
     st.write("### Login")
     with st.form("login_form"):
-        login_username = st.text_input("Username", key="login_username")
-        login_password = st.text_input("Password", type="password", key="login_password")
+        login_username = st.text_input("Username", key="login_username", placeholder="Enter your username")
+        login_password = st.text_input("Password", type="password", key="login_password", placeholder="Enter your password")
         
         # Modified columns with signup text
         col1, col2 = st.columns([1, 2])
@@ -86,9 +86,9 @@ if not st.session_state.logged_in:
             """, unsafe_allow_html=True)
             
             with st.form("signup_modal_form"):
-                signup_username = st.text_input("New Username", key="signup_username")
-                signup_email = st.text_input("Email", key="signup_email")
-                signup_password = st.text_input("Password", type="password", key="signup_password")
+                signup_username = st.text_input("New Username", key="signup_username", placeholder="Enter your username (e.g., john_doe)")
+                signup_email = st.text_input("Email", key="signup_email", placeholder="Enter your email (e.g., john@gmail.com)")
+                signup_password = st.text_input("Password", type="password", key="signup_password", placeholder="Min 8 chars, letters & digits required")
                 signup_cols = st.columns([1, 1])
                 with signup_cols[0]:
                     signup_submitted = st.form_submit_button("Create Account")

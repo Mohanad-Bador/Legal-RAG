@@ -3,3 +3,4 @@
 /src/rag/__pycache__
 src/database/legal_rag.db
 /src/ui/__pycache__
+.env

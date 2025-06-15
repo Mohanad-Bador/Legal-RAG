@@ -6,6 +6,13 @@ from passlib.context import CryptContext
 from sqlite3 import IntegrityError
 from src.database.schema import get_user, insert_user
 from src.database.models import UserRequest
+import re
+import os
+from dotenv import load_dotenv
+
+
+# Load environment variables
+load_dotenv()
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -14,9 +21,9 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 # Secret key and algorithm for encoding and decoding JWT tokens
-SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+SECRET_KEY = os.getenv("SECRET_KEY", "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
 # API router for authentication
 router = APIRouter()
@@ -51,11 +58,42 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 # API endpoint for creating a new user
 @router.post("/signup")
 def sign_up(request: UserRequest):
+    # Validate username is not empty
+    if not request.username or request.username.strip() == "":
+        raise HTTPException(status_code=400, detail="Username cannot be empty")
+    
+    # Validate username doesn't contain spaces
+    if " " in request.username:
+        raise HTTPException(status_code=400, detail="Username cannot contain spaces")
+
+    # Check if username already exists
+    existing_user = get_user(request.username)
+    if existing_user is not None:
+        raise HTTPException(status_code=400, detail="Username already exists")
+    
+    # Validate email format
+    if not request.email or not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', request.email):
+        raise HTTPException(status_code=400, detail="Please enter a valid email address")
+    
+    # Validate password requirements
+    if len(request.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters long")
+    
+    # Check if password contains both letters and digits
+    has_letter = re.search(r'[a-zA-Z]', request.password)
+    has_digit = re.search(r'\d', request.password)
+    
+    if not has_letter:
+        raise HTTPException(status_code=400, detail="Password must contain at least one letter")
+    
+    if not has_digit:
+        raise HTTPException(status_code=400, detail="Password must contain at least one digit")
+    
     hashed_password = pwd_context.hash(request.password)
     try:
         user_id = insert_user(request.username, request.email, hashed_password)
     except IntegrityError:
-        raise HTTPException(status_code=400, detail="Username or email already exists")
+        raise HTTPException(status_code=400, detail="Email already exists")
         
     # Generate an access token for the new user
     access_token = create_access_token(data={"sub": request.username})

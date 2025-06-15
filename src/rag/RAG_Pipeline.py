@@ -50,7 +50,7 @@ class DummyRAGService:
             "contexts": contexts,
         }
 
-# Initialize once
+# # Initialize once
 # dummy_rag_service = DummyRAGService() # Uncomment this line to use the dummy service
 
 
@@ -119,9 +119,6 @@ class RAGPipeline:
         # Retrieve relevant documents
         contexts = self.retriever.retrieve_documents(query)
         
-        # # Flatten the 2D array into a single string for the generator
-        # combined_context = "\n\n".join(["\n".join(context_group) for context_group in contexts])
-
         # Generate response using the combined context
         answer = self.generator.generate_response(query, contexts)
         
