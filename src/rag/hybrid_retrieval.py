@@ -7,8 +7,7 @@ from langchain.retrievers import ParentDocumentRetriever
 from langchain.storage import LocalFileStore
 from langchain.storage._lc_store import create_kv_docstore
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
-from src.rag.preprocessing_pipline import clean_text,setup_nlp_tools
-import chromadb
+from src.rag.preprocessing_pipline import clean_text,setup_nlp_tools,extract_article_lookup
 import torch
 import json
 import ast
@@ -32,10 +31,9 @@ class HybridRetriever:
         
         self.documents = processed_documents
 
-        self.doc_lookup = {
-        (doc.metadata.get("law"), str(doc.metadata.get("article_number"))): doc
-        for doc in documents
-        }
+        doc_lookup = {
+        (str(doc.metadata.get("article_number")),doc.metadata.get("law_short")): doc
+        for doc in documents}
 
         if (vectorstore_path and not docstore_path) or (docstore_path and not vectorstore_path):
           raise ValueError("You must provide both 'vectorstore_path' and 'docstore_path', or neither.")
@@ -267,8 +265,16 @@ class HybridRetriever:
         Returns:
             A list of retrieved documents.
         """
-        processed_query = clean_text(query)
-        results = self.ensemble_retriever.get_relevant_documents(processed_query)
-        unique_documents ={doc.metadata['article_number']: doc for doc in results}.values()
-        reranked = self.rerank(query, unique_documents)
-        return reranked
+        result = []
+        lookups = extract_article_lookup(query)
+        if lookups is not None:
+            for lookup in lookups:
+                doc =self.doc_lookup.get(lookup)
+                doc_with_linked_articles = self.get_linked_articles(doc)
+                result.append(doc_with_linked_articles)
+        else:
+            processed_query = clean_text(query)
+            results = self.ensemble_retriever.get_relevant_documents(processed_query)
+            unique_documents ={doc.metadata['article_number']: doc for doc in results}.values()
+            result = self.rerank(query, unique_documents)
+        return result
