@@ -21,7 +21,7 @@ chroma-hnswlib==0.7.6
 rank_bm25==0.2.2
 
 # Deployment
-streamlit==1.43.0
+streamlit==1.45.0
 fastapi==0.115.9
 uvicorn==0.34.0
 python-jose==3.4.0

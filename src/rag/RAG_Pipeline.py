@@ -33,8 +33,10 @@ class DummyRAGService:
         
         # # Create dummy response with the same structure as RAGPipeline
         # contexts = [
-        #     "This is a dummy context #1 for testing purposes.",
-        #     "This is a dummy context #2 for testing purposes."
+        #     ["This is a dummy context #1 for testing purposes.", "This is another dummy context #1.", "This is yet another dummy context #1."],
+        #     ["This is a dummy context #2 for testing purposes."],
+        #     ["This is a dummy context #3 for testing purposes.", "This is another dummy context #3."],
+        #     ["This is a dummy context #4 for testing purposes."],
         # ]
         
         # metadata = [
@@ -48,12 +50,10 @@ class DummyRAGService:
         # Extract contexts and metadata from retrieved documents
         contexts = [doc.page_content for doc in retrieved_docs]
         metadata = [doc.metadata for doc in retrieved_docs]
-        combined_context = "\n\n".join(contexts)
         
         return {
             "answer": f"This is a dummy response to question: '{question}', but retrieved from actual documents.",
             "contexts": contexts,
-            "combined_context": combined_context,
             "metadata": metadata
         }
 

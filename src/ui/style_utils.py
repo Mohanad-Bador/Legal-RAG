@@ -38,7 +38,7 @@ def load_css():
     theme = get_theme_colors()
 
     # Path to the law_logo image
-    logo_path = os.path.join(os.path.dirname(__file__), ".streamlit", "law_logo.png")
+    logo_path = os.path.join(os.path.dirname(__file__), "assets", "law_logo.png")
     
     # Apply the background image and other styling
     st.markdown(f"""
