@@ -38,23 +38,16 @@ class DummyRAGService:
         #     ["This is a dummy context #3 for testing purposes.", "This is another dummy context #3."],
         #     ["This is a dummy context #4 for testing purposes."],
         # ]
-        
-        # metadata = [
-        #     {"source": "dummy_source_1", "title": "Dummy Document 1", "page": 1},
-        #     {"source": "dummy_source_2", "title": "Dummy Document 2", "page": 2}
-        # ]
 
         # Use the actual hybrid retriever to get relevant documents
         retrieved_docs = self.retriever.retrieve_documents(question)
         
         # Extract contexts and metadata from retrieved documents
         contexts = [doc.page_content for doc in retrieved_docs]
-        metadata = [doc.metadata for doc in retrieved_docs]
         
         return {
             "answer": f"This is a dummy response to question: '{question}', but retrieved from actual documents.",
             "contexts": contexts,
-            "metadata": metadata
         }
 
 # Initialize once
@@ -124,20 +117,18 @@ class RAGPipeline:
             raise ValueError("Retriever has not been initialized. Call initialize_retriever with documents first.")
         
         # Retrieve relevant documents
-        retrieved_docs = self.retriever.retrieve_documents(query)
+        contexts = self.retriever.retrieve_documents(query)
         
-        # Extract context from retrieved documents
-        contexts = [doc.page_content for doc in retrieved_docs]
-        combined_context = "\n\n".join(contexts)
-        
+        # # Flatten the 2D array into a single string for the generator
+        # combined_context = "\n\n".join(["\n".join(context_group) for context_group in contexts])
+
         # Generate response using the combined context
-        answer = self.generator.generate_response(query, combined_context)
+        answer = self.generator.generate_response(query, contexts)
         
         # Return both the retrieved contexts and the generated answer
         return {
             "answer": answer,
             "contexts": contexts,
-            "metadata": [doc.metadata for doc in retrieved_docs]
         }
 
 # Initialize once
