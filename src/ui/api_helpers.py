@@ -318,3 +318,50 @@ def render_chat_history():
                         display_context(contexts)
                     else:
                         display_context({"contexts": contexts})
+
+# Function to toggle about modal
+def toggle_about_modal():
+    st.session_state.show_about_modal = not st.session_state.show_about_modal
+
+@st.dialog("About Egyptian Legal Assistant")
+def render_about_modal():
+    """Render the About modal as a true popup overlay"""
+    
+    st.markdown("### 🎯 Project Overview")
+    st.write("""
+    AI-powered tool for Egyptian legal questions using Retrieval-Augmented Generation (RAG) technology.
+    """)
+    
+    st.markdown("### ✨ Features")
+    st.markdown("""
+    - **Intelligent Legal Q&A**: Ask questions about Egyptian law and get informed responses
+    - **Chat History**: Keep track of your legal consultations
+    - **User Authentication**: Secure login and registration
+    - **Context-Aware Responses**: Responses based on relevant legal documents
+    - **Source References**: View specific legal articles used
+    """)
+    
+    st.markdown("### 🔧 Technology Stack")
+    st.markdown("""
+    - **Frontend**: Streamlit
+    - **Backend**: FastAPI
+    - **AI Model**: Large Language Model with RAG
+    - **Database**: SQLite for chat history and user data
+    - **Vector Database**: ChromaDB for efficient document retrieval
+    """)
+
+    st.markdown("### 📚 Legal Document Sources")
+    st.markdown("""
+    Our system is trained on and references the following Egyptian legal documents:
+    
+    - **Egyptian Labor Law (Law No. 12 of 2003)** - Employment and labor relations
+      - [Official Arabic Text](https://www.manpower.gov.eg/PDF/WorkLow/law2003.pdf)
+      - [Ministry of Labor Portal](https://www.manpower.gov.eg/WorkLow%20_1.html)
+    
+    - **Egyptian Education Law (Law No. 139 of 1981)** - Educational system and regulations
+      - [Official Arabic Text](https://moe.gov.eg/media/l3hnjmv4/educationactno139of1981.pdf)
+      - [Ministry of Education Portal](https://moe.gov.eg/ar/laws)
+    """)
+    
+    st.markdown("### ⚠️ Disclaimer")
+    st.warning("This tool is for informational purposes only and does not constitute legal advice. Always consult with a qualified legal professional for specific legal matters.")

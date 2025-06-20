@@ -1,5 +1,5 @@
 import streamlit as st
-from api_helpers import handle_login, handle_signup, handle_user_question, render_chat_history
+from api_helpers import handle_login, handle_signup, handle_user_question, render_chat_history, toggle_about_modal, render_about_modal
 from sidebar import render_sidebar
 from style_utils import load_css
 
@@ -34,9 +34,18 @@ if 'chat_list' not in st.session_state:
     st.session_state.chat_list = []
 if 'editing_chat_title' not in st.session_state:
     st.session_state.editing_chat_title = False
+if 'show_about_modal' not in st.session_state:
+    st.session_state.show_about_modal = False
 
 # Streamlit app UI
-st.title("Egyptian Legal Assistant")
+col1, col2 = st.columns([4, 1])
+with col1:
+    st.title("Egyptian Legal Assistant")
+with col2:
+    # Add some padding to align with the title
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("ℹ️ About", key="about_btn", type="primary"):
+        render_about_modal()
 
 # Login and Signup forms
 if not st.session_state.logged_in:

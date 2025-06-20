@@ -66,4 +66,20 @@ def load_css():
         font-weight: 600;
         margin-bottom: 15px;
     }}
+
+    .about-modal {{
+        background-color: {theme["secondaryBackgroundColor"]};
+        padding: 20px;
+        border-radius: 10px;
+        border-left: 4px solid {theme["primaryColor"]};
+        margin: 20px 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }}
+    
+    .about-modal h2 {{
+        color: {theme["primaryColor"]};
+        margin-bottom: 15px;
+    }}
+
+    </style>
     """, unsafe_allow_html=True)
