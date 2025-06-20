@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+from session_manager import SessionManager
 
 class APIHelper:
     BASE_URL = "http://127.0.0.1:8000"
@@ -77,6 +78,7 @@ class APIHelper:
         return response
 
 def fetch_chat_history(chat_id):
+    """Fetch and load chat history for a specific chat"""
     if st.session_state.logged_in:
         response = APIHelper.fetch_chat_history(chat_id)
         if response.status_code == 200:
@@ -85,7 +87,7 @@ def fetch_chat_history(chat_id):
             # Process messages in pairs
             messages = response.json()["messages"]
             i = 0
-            while i < len(messages) - 1:  # Process in user-AI pairs
+            while i < len(messages) - 1:
                 user_message = messages[i]
                 ai_message = messages[i+1]
                 
@@ -99,23 +101,31 @@ def fetch_chat_history(chat_id):
                 i += 2
 
 def fetch_user_chats():
+    """Fetch and load user's chat list"""
     if st.session_state.logged_in and st.session_state.user_id:
         response = APIHelper.fetch_user_chats(st.session_state.user_id)
         if response.status_code == 200:
             st.session_state.chat_list = response.json()["chats"]
 
 def create_new_chat(title="New Chat"):
+    """Create a new chat and set it as current"""
     if st.session_state.logged_in and st.session_state.user_id:
         response = APIHelper.create_chat(st.session_state.user_id, title)
         if response.status_code == 200:
             new_chat = response.json()
             st.session_state.current_chat_id = new_chat["id"]
             st.session_state.chat_history = []
+
+            # Update session with new current chat
+            if 'session_manager' in st.session_state:
+                st.session_state.session_manager.update_current_chat(new_chat["id"])
+
             fetch_user_chats()  # Refresh chat list
             return new_chat["id"]
         return None
 
 def update_chat_title(chat_id, new_title):
+    """Update the title of a chat"""
     if st.session_state.logged_in:
         response = APIHelper.update_chat_title(chat_id, new_title)
         if response.status_code == 200:
@@ -124,6 +134,7 @@ def update_chat_title(chat_id, new_title):
             st.rerun()
 
 def delete_user_chat(chat_id):
+    """Delete a chat and reset current chat if needed"""
     if st.session_state.logged_in:
         response = APIHelper.delete_chat(chat_id)
         if response.status_code == 200:
@@ -141,10 +152,15 @@ def select_chat(chat_id):
     # Clear and fetch new chat history
     st.session_state.chat_history = []
     fetch_chat_history(chat_id)
+
+    # Update the session with current chat
+    if 'session_manager' in st.session_state:
+        st.session_state.session_manager.update_current_chat(chat_id)
     
     st.rerun()
 
 def handle_login(username, password):
+    """Handle user login and save session"""
     response = APIHelper.login(username, password)
     if response.status_code == 200:
         data = response.json()
@@ -152,11 +168,28 @@ def handle_login(username, password):
         st.session_state.username = username
         st.session_state.access_token = data["access_token"]
         st.session_state.user_id = data["user_id"]
-        fetch_user_chats()  # Load chats after login
+
+        # Save session data
+        if 'session_manager' not in st.session_state:
+            st.session_state.session_manager = SessionManager()
+
+        st.session_state.session_manager.save_user_session({
+            'username': username,
+            'access_token': data["access_token"],
+            'user_id': data["user_id"],
+            'current_chat_id': getattr(st.session_state, 'current_chat_id', None)
+        })
+
+        fetch_user_chats()
         return True, "Logged in successfully"
     return False, "Invalid username or password"
 
+def toggle_signup_modal():
+    """Toggle the signup modal visibility"""
+    st.session_state.show_signup_modal = not st.session_state.show_signup_modal
+
 def handle_signup(username, email, password):
+    """Handle user signup and save session"""
     response = APIHelper.signup(username, email, password)
     if response.status_code == 200:
         data = response.json()
@@ -164,6 +197,18 @@ def handle_signup(username, email, password):
         st.session_state.username = username
         st.session_state.user_id = data["user_id"]
         st.session_state.access_token = data["access_token"]
+
+        # Save session data
+        if 'session_manager' not in st.session_state:
+            st.session_state.session_manager = SessionManager()
+
+        st.session_state.session_manager.save_user_session({
+            'username': username,
+            'access_token': data["access_token"],
+            'user_id': data["user_id"],
+            'current_chat_id': None
+        })
+
         return True, "User created successfully"
     try:
         error_detail = response.json().get("detail", "Unknown error")
@@ -172,6 +217,11 @@ def handle_signup(username, email, password):
     return False, error_detail
 
 def handle_logout():
+    """Handle user logout and clear session"""
+    if 'session_manager' in st.session_state:
+        st.session_state.session_manager.clear_user_session()
+
+    # Clear session state
     st.session_state.logged_in = False
     st.session_state.username = ""
     st.session_state.access_token = ""
@@ -182,6 +232,7 @@ def handle_logout():
     st.rerun()
 
 def handle_user_question(user_question):
+    """Handle user question and generate response"""
     # Create a new chat if none is selected
     if not st.session_state.current_chat_id:
         # First message creates the chat with the first few words as the title
@@ -292,7 +343,7 @@ def display_context(response_data):
                     
                     st.markdown(linked_html, unsafe_allow_html=True)
             else:
-                # Handle single context (string) - display as regular article
+                # Handle single context (string)
                 st.markdown(f"**Article {i}**")
                 st.markdown(f"```\n{context_group}\n```")
 
@@ -318,10 +369,6 @@ def render_chat_history():
                         display_context(contexts)
                     else:
                         display_context({"contexts": contexts})
-
-# Function to toggle about modal
-def toggle_about_modal():
-    st.session_state.show_about_modal = not st.session_state.show_about_modal
 
 @st.dialog("About Egyptian Legal Assistant")
 def render_about_modal():

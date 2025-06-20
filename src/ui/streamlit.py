@@ -1,7 +1,8 @@
 import streamlit as st
-from api_helpers import handle_login, handle_signup, handle_user_question, render_chat_history, toggle_about_modal, render_about_modal
+from api_helpers import handle_login, handle_signup, toggle_signup_modal, handle_user_question, render_chat_history, render_about_modal
 from sidebar import render_sidebar
 from style_utils import load_css
+from session_manager import initialize_session_state, load_persistent_session
 
 # Page configuration
 st.set_page_config(
@@ -10,32 +11,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Load all custom CSS
+# Load CSS and initialize session
 load_css()
-
-# Initialize session state variables
-if 'chat_history' not in st.session_state:
-    st.session_state.chat_history = []
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
-if 'username' not in st.session_state:
-    st.session_state.username = ""
-if 'access_token' not in st.session_state:
-    st.session_state.access_token = ""
-if 'user_id' not in st.session_state:
-    st.session_state.user_id = None
-if 'user_question' not in st.session_state:
-    st.session_state.user_question = ""
-if 'should_clear_input' not in st.session_state:
-    st.session_state.should_clear_input = False
-if 'current_chat_id' not in st.session_state:
-    st.session_state.current_chat_id = None
-if 'chat_list' not in st.session_state:
-    st.session_state.chat_list = []
-if 'editing_chat_title' not in st.session_state:
-    st.session_state.editing_chat_title = False
-if 'show_about_modal' not in st.session_state:
-    st.session_state.show_about_modal = False
+initialize_session_state()
+load_persistent_session()
 
 # Streamlit app UI
 col1, col2 = st.columns([4, 1])
@@ -52,10 +31,6 @@ if not st.session_state.logged_in:
     # Initialize modal state if not exists
     if 'show_signup_modal' not in st.session_state:
         st.session_state.show_signup_modal = False
-    
-    # Function to toggle signup modal
-    def toggle_signup_modal():
-        st.session_state.show_signup_modal = not st.session_state.show_signup_modal
     
     st.write("### Login")
     with st.form("login_form"):
@@ -77,6 +52,8 @@ if not st.session_state.logged_in:
         if submitted:
             success, message = handle_login(login_username, login_password)
             if success:
+                if st.session_state.show_signup_modal:
+                    toggle_signup_modal()  # Close signup modal if open
                 st.success(message)
                 st.rerun()
             else:

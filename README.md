@@ -1,145 +1,236 @@
-# Legal-RAG
+# Legal-RAG 🏛️⚖️
 
-A Retrieval-Augmented Generation (RAG) system specialized for legal queries, combining advanced language models with a hybrid retrieval system to provide accurate and contextually relevant answers to legal questions.
+A state-of-the-art Retrieval-Augmented Generation (RAG) system specialized for **labor and educational law queries**, combining advanced language models with a hybrid retrieval system to provide accurate and contextually relevant answers to legal questions in these specific domains.
 
-## Overview
+## 🌟 Features
 
-Legal-RAG is designed to help users get precise answers to legal inquiries by combining:
+- **🔍 Hybrid Retrieval**: Combines semantic search and keyword-based search for optimal document retrieval
+- **🤖 Advanced Generation**: Leverages fine-tuned language models for coherent and accurate legal responses
+- **⚖️ Specialized Legal Domains**: Focused on labor law and educational law queries for enhanced accuracy
+- **👥 Multi-User System**: Complete user management with registration, authentication, and personalized chat history
+- **💬 Interactive Chat Interface**: Clean Streamlit UI with conversation management
+- **🔐 Secure Authentication**: JWT-based authentication system
+- **📚 Comprehensive API**: RESTful endpoints for all system functionality
+- **🗄️ Persistent Storage**: SQLite database with chat history and user management
 
-- **Hybrid Retrieval**: Uses both semantic search and keyword-based search to find the most relevant legal documents
-- **Advanced Generation**: Leverages state-of-the-art language models to generate coherent and accurate responses
-- **Multi-User System**: Supports user registration, authentication, and personalized chat history
-- **Interactive UI**: Clean Streamlit interface for easy interaction with the system
+## 🚀 Quick Start
 
-## Project Structure
+### Prerequisites
+
+- Python 3.8 or higher
+- Git
+- Internet connection for model downloads
+
+### Local Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Mohanad-Bador/Legal-RAG.git
+   cd Legal-RAG
+   ```
+
+2. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Run the application**
+   ```bash
+   python app.py
+   ```
+
+4. **Access the application**
+   - Streamlit UI: `http://localhost:8501`
+   - FastAPI Docs: `http://localhost:8000/docs`
+
+## 📁 Project Structure
 
 ```
 Legal-RAG/
 ├── data/                    # Data storage
 │   ├── chromadb-law/        # Vector database storage
 │   └── docstore/            # Document storage
+│   ├── labour_data/         # Labor law data and documents
+│   └── education_law_data/  # Educational law data and documents
 ├── src/
 │   ├── apis/                # FastAPI endpoints
+│   │   ├── auth.py          # Authentication endpoints
+│   │   └── chat.py          # Chat management endpoints
 │   ├── database/            # Database models and schema
+│   │   ├── models.py        # SQLAlchemy models
+│   │   └── schema.py        # Pydantic schemas
 │   ├── rag/                 # RAG components
 │   │   ├── hybrid_retrieval.py  # Hybrid retrieval system
-│   │   ├── generation.py    # Generation 
+│   │   ├── generation.py    # Response generation
 │   │   └── RAG_Pipeline.py  # Main RAG pipeline
 │   └── ui/                  # Streamlit UI components
-└── app.py                   # Main application entry point
+│       ├── streamlit.py     # Main UI application
+│       ├── sidebar.py       # Sidebar components and navigation
+│       └── api_helpers.py   # API communication helpers
+├── app.py                   # Main application entry point
+├── requirements.txt         # Python dependencies
+└── README.md               # Project documentation
 ```
 
-## Requirements
+## ☁️ Running on Google Colab
 
-The project requires Python 3.8+ and the dependencies listed in `requirements.txt`.
+Perfect for testing and development without local setup:
 
-## Running on Google Colab
+### Step 1: Setup Environment
 
-Follow these steps to run the project on Google Colab:
+```python
+# Clone the repository
+!git clone https://YOUR_GITHUB_TOKEN@github.com/Mohanad-Bador/Legal-RAG.git
+%cd Legal-RAG
 
-1. **Create a New Colab Notebook**
+# Add to Python path
+import sys
+sys.path.append('/content/Legal-RAG')
 
-   Go to [Google Colab](https://colab.research.google.com/) and create a new notebook.
+# Install dependencies
+!pip install -r requirements.txt
+```
 
-2. **Clone the Repository**
+### Step 2: Configure Model Path
 
-   ```python
-   !git clone https://<YOUR_GITHUB_TOKEN>@github.com/Mohanad-Bador/Legal-RAG.git
-   ```
+```python
+# Mount Google Drive for model access
+from google.colab import drive
+drive.mount('/content/drive')
 
-3. **Add Project to Python Path**
+# Update the model path in src/rag/RAG_pipeline.py
+# Set finetuned_model_id to your model's path on Google Drive
+```
 
-   ```python
-   import sys
-   sys.path.append('/content/Legal-RAG')
-   ```
+### Step 3: Setup Public Access
 
-4. **Install Dependencies**
+```python
+from pyngrok import ngrok
 
-   ```python
-   !pip install -r requirements.txt
-   ```
+# Set your ngrok auth token (get from https://dashboard.ngrok.com)
+ngrok.set_auth_token("YOUR_NGROK_AUTH_TOKEN")
+ngrok.kill()  # Kill existing tunnels
+```
 
-5. **Mount Google Drive and Set Finetuned Model Path**
+### Step 4: Launch Application
 
-   ```python
-   from google.colab import drive
-   drive.mount('/gdrive')
-   ```
+```python
+# Run the application
+!python src/app.py
+```
 
-   Update src/rag/RAG_pipeline.py RAGPipeline.init finetuned_model_id to the finetuned model path on your drive
+The application will provide public URLs for both the Streamlit interface and FastAPI documentation.
 
-6. **Set Up Ngrok for Public Access**
+## 📖 Usage Guide
 
-   ```python
-   # Install pyngrok if not already installed
-   !pip install pyngrok
-   
-   import uvicorn
-   from pyngrok import ngrok
-   from threading import Thread
+### 🔐 User Authentication
 
-   # Authenticate ngrok with your authtoken (get one from https://dashboard.ngrok.com)
-   ngrok.set_auth_token("YOUR_NGROK_AUTH_TOKEN")
-   
-   # Kill any existing ngrok tunnels
-   ngrok.kill()
-   ```
+| Action | Description |
+|--------|-------------|
+| **Register** | Create a new account with username, email, and password |
+| **Login** | Access your account with credentials |
+| **Logout** | Securely end your session |
 
-7. **Run the Application**
+### 💬 Chat Interface
 
-   ```python
-   # Run the FastAPI and Streamlit application
-   !python src/app.py
-   ```
+1. **🆕 Start New Chat**: Begin a fresh conversation
+2. **❓ Ask Questions**: Submit labor or educational law queries for AI analysis
+3. **📜 View History**: Browse previous conversations
+4. **✏️ Rename Chats**: Organize with custom titles
+5. **🗑️ Delete Chats**: Remove unwanted conversations
 
-8. **Access the Application**
+**Supported Legal Domains:**
+- 🏭 **Labor Law**: Employment rights, workplace regulations, union laws, wage disputes
+- 🎓 **Educational Law**: Student rights, institutional policies, educational compliance, academic regulations
 
-   After running the application, you'll see URLs in the output. Use these URLs to access:
-   - Streamlit UI: For the user interface
-   - FastAPI Docs: For API documentation at `/docs` endpoint
+### 🔧 API Endpoints
 
-## Using the Application
+| Endpoint | Method | Description |
+|----------|---------|-------------|
+| `/auth/signup` | POST | User registration |
+| `/auth/login` | POST | User authentication |
+| `/chat/create` | POST | Create new chat |
+| `/chat/list/{user_id}` | GET | Get user's chats |
+| `/chat/generate` | POST | Generate AI response |
+| `/chat/update` | PUT | Update chat details |
+| `/chat/{chat_id}` | DELETE | Delete specific chat |
 
-### User Authentication
+## 🏗️ System Architecture
 
-1. **Register**: Create a new account with username, email, and password
-2. **Login**: Access your account with your credentials
-3. **Logout**: End your session securely
+### 🔍 Hybrid Retrieval System
 
-### Chat Interface
+Our advanced retrieval combines multiple approaches specifically trained on labor and educational law documents:
 
-1. **Start a New Chat**: Begin a new conversation with the legal assistant
-2. **Ask Questions**: Type legal queries and get AI-generated responses
-3. **View History**: Access your previous conversations
-4. **Rename Chats**: Organize your chats with custom titles
-5. **Delete Chats**: Remove unwanted conversations
-
-### API Endpoints
-
-The system exposes several RESTful API endpoints:
-
-- **Authentication**: `/auth/login`, `/auth/signup`
-- **Chat Management**: `/chat/create`, `/chat/list/{user_id}`, `/chat/update`, `/chat/{chat_id}`
-- **Question Answering**: `/chat/generate`
-
-## Advanced Features
-
-### Hybrid Retrieval System
-
-The system uses a combination of:
-- **Dense Retrieval**: Semantic search using embeddings
-- **Sparse Retrieval**: Keyword-based search using BM25
-- **Reranking**: Cross-encoder to rerank results for maximum relevance
-
-### Database Schema
-
-The application uses SQLite with the following tables:
-- **Users**: Store user information and credentials
-- **Chats**: Organize conversations by user
-- **Messages**: Store individual messages with full response context
+- **Dense Retrieval**: Semantic similarity using embedding models trained on legal texts
+- **Sparse Retrieval**: Keyword matching with BM25 algorithm optimized for legal terminology
+- **Cross-Encoder Reranking**: Final relevance scoring for optimal results in labor and educational law contexts
 
 
-## License
+### 🗃️ Database Schema
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+| Table | Purpose |
+|-------|---------|
+| **users** | User accounts and authentication |
+| **chats** | Conversation organization |
+| **messages** | Individual message storage with context |
+
+## 🛠️ Configuration
+
+### Environment Variables
+
+Create a `.env` file for configuration:
+
+```env
+# JWT Settings
+SECRET_KEY=your-secret-key-here
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
+
+### Model Configuration
+
+Update `src/rag/RAG_pipeline.py` to configure:
+- Fine-tuned model path
+- Embedding model selection
+- Retrieval parameters
+- Generation settings
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| **Import errors** | Ensure all dependencies are installed: `pip install -r requirements.txt` |
+| **Model not found** | Check model path in configuration |
+| **Port conflicts** | Change ports in `app.py` if 8000/8501 are in use |
+| **Authentication issues** | Verify JWT secret key configuration |
+
+### Performance Tips
+
+- Use GPU acceleration when available
+- Consider model quantization for faster inference
+- Implement caching for frequently accessed documents
+- Monitor memory usage with large document collections
+
+## 🤝 Contributing
+
+We welcome contributions! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 🙏 Acknowledgments
+
+- Built with [Streamlit](https://streamlit.io/) for the user interface
+- Powered by [FastAPI](https://fastapi.tiangolo.com/) for robust API endpoints
+- Uses [ChromaDB](https://www.trychroma.com/) for vector storage
+- Implements [Sentence Transformers](https://www.sbert.net/) for embeddings
+- Specialized for labor and educational law domains
+
+---
+
+⭐ **Star this repository if you find it helpful!** ⭐

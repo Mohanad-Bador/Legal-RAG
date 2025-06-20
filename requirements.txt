@@ -30,24 +30,3 @@ sqlite-web==0.6.4
 pyngrok==7.2.3
 pydantic==2.10.6
 python-multipart==0.0.20
-
-# Retrieval
-# langchain_chroma==0.2.2
-
-# # Evaluation
-# nltk==3.9.1n
-# rouge-score==0.1.2
-# bert-score==0.3.13
-# rouge==1.0.1
-
-# langchain-openai==0.3.8
-# langchain-core==0.3.43
-# tokenizers==0.21.0
-# datasets==3.3.2
-# wikipedia==1.4.0
-# unstructured==0.16.23
-# stanza==1.10.1
-# openpyxl==3.1.5
-# docx2txt==0.8
-# pypdf==5.3.1
-# protobuf==4.25.6
