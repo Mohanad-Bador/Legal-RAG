@@ -364,7 +364,7 @@ def render_chat_history():
             # Show context expander if available
             contexts = msg.get("contexts", [])
             if contexts:
-                with st.expander("Show sources and context", expanded=False):
+                with st.expander("Show sources", expanded=False):
                     if isinstance(contexts, list):
                         display_context(contexts)
                     else:
